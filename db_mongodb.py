@@ -2,33 +2,26 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime
 import socket
-import winreg
 
 
 def getIp():
     try:
-        key = r"SOFTWARE\Microsoft\Cryptography"
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key) as h:
-            guid, _ = winreg.QueryValueEx(h, "MachineGuid")
-            return str(guid)
-    except Exception:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        s.connect(("2001:4860:4860::8888", 80, 0, 0))  # Google DNS IPv6
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-            s.connect(("2001:4860:4860::8888", 80, 0, 0))  # Google DNS IPv6
-            local_ip = s.getsockname()[0]
+            # không cần gửi data, chỉ để lấy local ip
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        except Exception:
+            ip = "127.0.0.1"  # fallback
+        finally:
             s.close()
-            return local_ip
-        except:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            try:
-                # không cần gửi data, chỉ để lấy local ip
-                s.connect(("8.8.8.8", 80))
-                ip = s.getsockname()[0]
-            except Exception:
-                ip = "127.0.0.1"  # fallback
-            finally:
-                s.close()
-            return ip
+        return ip
 
 # -----connect db and return collect
 

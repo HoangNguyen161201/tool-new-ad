@@ -1,0 +1,17 @@
+./__pycache__
+./_internal
+./test
+./main.exe
+./output
+./videos
+./youtubes
+./env
+
+output
+__pycache__
+_internal
+test
+env
+main.exe
+videos
+youtubes

@@ -219,8 +219,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     f"{path_folder}/result.txt",
                     [
                         new_info['title'],
-                        f"tin hot,{
-                            ','.join(new_info['tags'])},tin nóng,tin tức mỗi ngày,",
+                        f"news,{new_info['tags']},breaking news,current events,",
                         f"[Nguồn: {name}] {new_info['description']}\n\n(tags):\n{', '.join(new_info['tags'])}"
                     ]
                 )
@@ -250,6 +249,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
 
             end_time = time.time()
             print(f"Thời gian chạy: {end_time - start_time:.2f} giây")
+            
+            time.sleep(10000)
 
             title = ''
             tags = ''

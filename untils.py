@@ -312,7 +312,7 @@ def generate_video_by_image_ffmpeg( in_path, out_path, second, person_path, avat
         [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7 if is_set_avatar else 0},setsar=1[avatar];
         [2:v]scale={person_w}:{person_h},format=rgba,setsar=1[person];
         [bg][avatar]overlay={width - 270}:40[tmp];
-        [tmp][person]overlay=50:H-h:format=auto
+        [tmp][person]overlay=40:H-h:format=auto
         """.replace("\n", ""),
         "-r", "1",                    # Giảm FPS
         "-crf", "32",                 
@@ -865,6 +865,32 @@ def generate_to_voice_edge(content: str, output_path: str, voice: str = "en-US-A
 
     asyncio.run(_run())
 
+def convert_to_mp4(input_path, output_path):
+    # command = [
+    #     "ffmpeg",
+    #     "-y",
+    #     "-i", input_path,
+    #     "-c:v", "libx264",
+    #     "-preset", "ultrafast",  # ít tốn RAM, CPU nhẹ
+    #     "-c:a", "aac",
+    #     "-b:a", "128k",
+    #     "-movflags", "+faststart",
+    #     output_path
+    # ]
+    command = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-r", "30",                # ép frame rate 30fps
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-ar", "44100",            # nâng tần số mẫu âm thanh lên chuẩn YouTube
+        "-movflags", "+faststart",
+        output_path
+    ]
+    subprocess.run(command)
+
 # concat video by ffmpeg ----------------------------------------------
 def add_thumbnail_to_video(input_video, avatar_path, person_path, output_video):
     # Lệnh ffmpeg
@@ -877,7 +903,7 @@ def add_thumbnail_to_video(input_video, avatar_path, person_path, output_video):
         f"""
         [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7}[avatar];
         [2:v]scale=iw*{0.65}:ih*{0.65}[person];
-        [0:v][avatar]overlay=W-w-{50}:{50}[v1];
+        [0:v][avatar]overlay=W-w-{1920 - 270}:{40}[v1];
         [v1][person]overlay={40}:H-h-{0}
         """.replace('\n', ''),
         "-c:v", "libx264",
@@ -965,6 +991,9 @@ def concat_content_videos_ffmpeg(intro_path, short_link_path,short_link_out_path
 
     subprocess.run(command)
     os.remove(list_file)
+    
+    mp4_out_path = out_path.replace(".mkv", ".mp4")
+    convert_to_mp4(out_path, mp4_out_path)
 
 # concat video by moviepy ------------------------------------------------
 def concat_content_videos_moviepy(audio_path, video_path_list, out_path):
@@ -1198,7 +1227,7 @@ def upload_yt( user_data_dir, title, description, tags, video_path, video_thumbn
     time.sleep(2)
 
     while True:
-        element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
+        element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
         
         if element:
             break  # Thoát vòng lặp nếu tìm thấy

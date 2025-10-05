@@ -2,7 +2,6 @@ import requests
 import os
 from bs4 import BeautifulSoup
 import random
-from data import gif_paths, person_img_paths
 import asyncio
 import cv2
 import subprocess
@@ -28,7 +27,6 @@ from selenium.webdriver.support.ui import Select
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import pyperclip
-from data import data_support
 from db_mongodb import get_webiste
 from datetime import datetime, timedelta
 from moviepy import ImageClip, VideoFileClip, concatenate_videoclips, CompositeVideoClip, AudioFileClip, TextClip, concatenate_audioclips
@@ -241,12 +239,13 @@ def get_info_new_aljazeera(url):
         
 
 # ----------------------------- ------------------------------------------
-def get_img_gif_person():
-    index_path = random.randint(0, 3)
-    return {
-        'person_img_path': person_img_paths[index_path],
-        'person_gif_path': gif_paths[index_path]    
-    } 
+def get_img_person(person_folder_path):
+    items = os.listdir(person_folder_path)
+    files = [f for f in items if os.path.isfile(
+        os.path.join(person_folder_path, f))]
+  
+    index_path = random.randint(0, files.__len__() - 1)
+    return f'{person_folder_path}/{files[index_path]}'
 
 # create video by image with ffmpeg----------------------------------------------
 def generate_image_ffmpeg(link, out_path, out_blur_path, width=1920, height=1080, crop=150):
@@ -262,6 +261,7 @@ def generate_image_ffmpeg(link, out_path, out_blur_path, width=1920, height=1080
 
     with open(out_path, "wb") as f:
         f.write(response.content)
+        
 
     image = cv2.imread(out_path)
     image = image[crop:-crop, crop:-crop]
@@ -291,31 +291,38 @@ def generate_image_ffmpeg(link, out_path, out_blur_path, width=1920, height=1080
     cv2.imwrite(out_path, combined)
     cv2.imwrite(out_blur_path, blurred)
 
-def generate_video_by_image_ffmpeg( in_path, out_path, second, is_set_avatar = True):
+def generate_video_by_image_ffmpeg( in_path, out_path, second, person_path, avatar_path, is_set_avatar = True):
     width, height = 1920, 1080
     duration = second
     os.makedirs('./temp', exist_ok=True)
+    
+    # Tính kích thước person theo tỉ lệ 0.75
+    person_w = int(width * 0.65)
+    person_h = int(height * 0.65)
 
     cmd = [
         "ffmpeg",
         "-y",
-        "-framerate", "1", "-loop", "1", "-t", str(duration), "-i", in_path,
-        "-framerate", "1", "-loop", "1", "-t", str(duration), "-i", './public/avatar2.png',
+        "-framerate", "1", "-loop", "1", "-t", str(duration), "-i", in_path,       # [0:v] background
+        "-framerate", "1", "-loop", "1", "-t", str(duration), "-i", avatar_path,   # [1:v] avatar
+        "-framerate", "1", "-loop", "1", "-t", str(duration), "-i", person_path,   # [2:v] person
         "-filter_complex",
         f"""
-        [0:v]scale={width}:{height},setsar=1,setpts=PTS-STARTPTS[bg]; \
-        [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7 if is_set_avatar else 0},setsar=1[avatar]; \
-        [bg][avatar]overlay={width - 270}:50
-        """.replace('\n', ''),
-        "-r", "1",                   # Giảm FPS cho nhẹ
-        "-crf", "32",                 # Giảm bitrate nhưng giữ duration
-        "-c:v", "libx264",            # Codec phổ biến
-        "-preset", "ultrafast",       # Encode nhanh
-        "-tune", "zerolatency",       # Cho realtime/stream
-        "-threads", "1",              # 1 vCPU
-        "-pix_fmt", "yuv420p",        # Tương thích
-        "-movflags", "+faststart",   # Tốt cho web
-        "-t", str(duration),          # ✨ Đảm bảo thời lượng cuối cùng
+        [0:v]scale={width}:{height},setsar=1,setpts=PTS-STARTPTS[bg];
+        [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7 if is_set_avatar else 0},setsar=1[avatar];
+        [2:v]scale={person_w}:{person_h},format=rgba,setsar=1[person];
+        [bg][avatar]overlay={width - 270}:40[tmp];
+        [tmp][person]overlay=50:H-h:format=auto
+        """.replace("\n", ""),
+        "-r", "1",                    # Giảm FPS
+        "-crf", "32",                 
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-tune", "zerolatency",
+        "-threads", "1",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        "-t", str(duration),
         out_path
     ]
     # === Run FFmpeg with progress ===
@@ -592,94 +599,6 @@ def import_audio_to_video(in_path, out_path, audio_path, audio_duration):
     ]
     subprocess.run(command)
 
-def generate_image_and_video_aff_and_get_three_item():
-    support_randoom = data_support
-    random.shuffle(support_randoom)
-    support_randoom = random.sample(support_randoom, 3)
-    uri = "mongodb+srv://hoangdev161201:Cuem161201@cluster0.3o8ba2h.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-    # Create a new client and connect to the server
-    client = MongoClient(uri, server_api=ServerApi('1'))
-    db = client["news"]
-    collection = db["link_affs"]
-
-    path_folder = f'./pic_affs'
-    try:
-        shutil.rmtree(path_folder)
-    except:
-        print('next')
-    
-    os.makedirs(path_folder)
-
-    # Lấy ngẫu nhiên 3 item
-    random_items = list(collection.aggregate([
-        {"$sample": {"size": 3}}
-    ]))
-
-
-    # In kết quả
-    for i, item in enumerate(random_items):
-        download_and_resize_image(item['itemMainPic'], save_path= f'{path_folder}/pic_{i}.png')
-
-
-    try:
-        background = Image.open('./public/bg/aff.png').convert("RGB")
-        draw = ImageDraw.Draw(background)
-
-        
-        font = ImageFont.truetype("./fonts/arial/arial.ttf", 35)
-        font2 = ImageFont.truetype("./fonts/arial/arial.ttf", 29)
-        font3 = ImageFont.truetype("./fonts/arial/ARIBL0.ttf", 40)
-    
-
-        for i, item in enumerate(random_items):
-            foreground = Image.open(f'{path_folder}/pic_{i}.png').convert("RGBA")
-            foreground = add_rounded_corners(foreground, 11)
-            x = 367 + 498 * i
-            y = 240
-            background.paste(foreground, (x, y), foreground)
-            
-            title = item['itemTitle']
-            if len(title) > 30:
-                title = title[:20] + "..."
-
-            
-            percent = ''
-            match = re.search(r'\d+(\.\d+)?', item['itemOriginPriceMin'])
-            match2 = re.search(r'\d+(\.\d+)?', item['itemPriceDiscountMin'])
-            if match and match2:
-                number1 = float(match.group())
-                number2 = float(match2.group())
-                percent = f'-{round(number2 / number1 * 100, 0)}%'
-
-
-            # Vẽ chữ phía dưới ảnh
-            draw.text((x, y + foreground.height + 25), title, fill=(0, 0, 0), font=font)
-            draw.text((x, y + foreground.height + 80), f'{item['totalTranpro3Semantic']} Sold', fill=(128, 128, 128), font=font2)
-            draw.rounded_rectangle(
-                [(x + 230, y), (x + 230 + 170, y + 65)],
-                radius=15,  # độ cong của góc
-                fill=(255, 255, 255),
-                outline=(210, 210, 210)
-            )
-            draw.text((x + 240, y), percent, fill=(255, 0, 0), font=font3)
-            
-        background.save(f'{path_folder}/pic_result.png')
-        audio_duration = get_media_duration('./public/aff.aac')
-
-        generate_video_by_image_ffmpeg(
-                        f'{path_folder}/pic_result.png',
-                        f'{path_folder}/daft.mkv',
-                        audio_duration
-                    )
-
-        import_audio_to_video(f'{path_folder}/daft.mkv', f'{path_folder}/aff.mkv',  './public/aff.aac', audio_duration)
-        
-        print("✅ Done")
-        return random_items
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return None
-    
 # amazon -----------------------------
 def process_image_support(
     input_url,
@@ -758,50 +677,6 @@ def process_image_support(
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     bordered_img.save(output_path)
 
-def generate_image_and_video_aff_and_get_three_item_amazon():
-    try:
-        support_randoom = data_support
-        random.shuffle(support_randoom)
-        support_randoom = random.sample(support_randoom, 3)
-        link_support_images = [item['link_img'] for item in support_randoom]
-        list_discount = [item['discount'] for item in support_randoom]
-        content_supports = "\n".join([item['content'] for item in support_randoom])
-        
-        for index, item in enumerate(link_support_images):
-            print(item)
-            process_image_support(item, f'./pic_affs/support_{index}.png', list_discount[index])
-
-        # Load ảnh background
-        background = Image.open("./public/bg/support.png")  # hoặc background.png
-
-        # Load 3 ảnh sản phẩm
-        product1 = Image.open(f'./pic_affs/support_0.png')
-        product2 = Image.open(f'./pic_affs/support_1.png')
-        product3 = Image.open(f'./pic_affs/support_2.png')
-
-        # Dán các sản phẩm vào ảnh nền tại vị trí mong muốn
-        background.paste(product1, (200, 245), product1.convert("RGBA"))
-        background.paste(product2, (715, 245), product2.convert("RGBA"))
-        background.paste(product3, (1230, 245), product3.convert("RGBA"))
-
-        # Lưu kết quả
-        background.save("./pic_affs/drag.png")
-        audio_duration = get_media_duration('./public/aff.aac')
-        generate_video_by_image_ffmpeg(
-                        f'./pic_affs/drag.png',
-                        f'./pic_affs/daft.mkv',
-                        audio_duration,
-                        False
-                    )
-        import_audio_to_video(f'./pic_affs/daft.mkv', f'./pic_affs/aff.mkv',  './public/aff.aac', audio_duration)
-        
-        print("✅ Done")
-        return content_supports
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return None
-
-
 def generate_content(content, model='gemini-1.5-flash', api_key = None):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(model)
@@ -813,7 +688,7 @@ def generate_title_description_improved(title, description, gemini_key = None, m
         title_des = generate_content(f'''tôi đang có các thông tin như sau:
                                     - title: {title}
                                     - description: {description}
-                                    hãy generate lại các thông tin trên cho tôi bằng tiếng việt sao cho hay và nổi bật, chuẩn seo youtube.
+                                    hãy generate lại các thông tin trên cho tôi bằng tiếng anh sao cho hay và nổi bật, chuẩn seo youtube.
                                     Trả ra dưới định dạng như sau:
                                     Dòng 1: là title (trên 50 ký tự và không quá 100 ký tự, không được có các dấu ký hiệu đặt biệt trong title, không có chứa 'dòng 1:').
                                     Từ dòng thứ 2 trở đi: là description. 
@@ -835,7 +710,7 @@ def generate_title_description_improved(title, description, gemini_key = None, m
 # tạo lại nội dung content
 def generate_content_improved(content, title, gemini_key = None, model = None):
     return generate_content(f'''
-        Tôi có một bản tin mới. Hãy viết lại bằng tiếng việt sao cho hấp dẫn, súc tích và phù hợp để đọc lên trong một video tin tức trên YouTube (voice-over). Nội dung cần được viết dưới dạng khách quan ở ngôi thứ ba, không dùng tôi, của tôi, chúng ta, hay bất kỳ đại từ ngôi thứ nhất nào.
+        Tôi có một bản tin mới. Hãy viết lại bằng tiếng anh sao cho hấp dẫn, súc tích và phù hợp để đọc lên trong một video tin tức trên YouTube (voice-over). Nội dung cần được viết dưới dạng khách quan ở ngôi thứ ba, không dùng tôi, của tôi, chúng ta, hay bất kỳ đại từ ngôi thứ nhất nào.
         title là: {title},
         Nội dung là: {content}
 
@@ -848,7 +723,7 @@ def generate_content_improved(content, title, gemini_key = None, model = None):
         ''', api_key= gemini_key, model= model)
         
         
-def generate_thumbnail(img_path, img_person_path, draf_path, out_path, text):
+def generate_thumbnail(img_path, img_person_path, bar_path, bg_path, draf_path, out_path, text):
     text = text.upper()
 
     # Mở ảnh thứ hai (ảnh nền phụ) và thay đổi kích thước
@@ -858,7 +733,7 @@ def generate_thumbnail(img_path, img_person_path, draf_path, out_path, text):
     # Mở ảnh overlay (PNG trong suốt)
     overlay = Image.open(img_person_path)
     overlay = overlay.resize((int(1920 * 0.8), int(1080 * 0.8)))
-    overlay2 = Image.open('./public/bar-2.png')
+    overlay2 = Image.open(bar_path)
 
     # Đảm bảo ảnh overlay có kênh alpha
     if overlay.mode != 'RGBA':
@@ -921,7 +796,7 @@ def generate_thumbnail(img_path, img_person_path, draf_path, out_path, text):
 
     # lưu ảnh với bg 
     jpg_image = Image.open(draf_path)  
-    png_image = Image.open('./public/bg/bg-2.png')
+    png_image = Image.open(bg_path)
     png_image = png_image.convert("RGBA")
     jpg_image.paste(png_image, (0, 0), png_image)
     jpg_image.save(out_path)
@@ -991,37 +866,34 @@ def generate_to_voice_edge(content: str, output_path: str, voice: str = "en-US-A
     asyncio.run(_run())
 
 # concat video by ffmpeg ----------------------------------------------
-def add_thumbnail_to_video(input_video, input_image, output_image, output_video):
-    # Kích thước mong muốn
-    width = 177
-    height = 85
-    bottom_margin = 40
-    right_margin = 27
-    
-    img = Image.open(input_image)
-    img = img.resize((width, height))
-    img.save(output_image)
-
+def add_thumbnail_to_video(input_video, avatar_path, person_path, output_video):
     # Lệnh ffmpeg
     cmd = [
-        "ffmpeg",
-        "-i", input_video,
-        "-i", output_image,
+        "ffmpeg", "-y",
+        "-i", input_video,      # [0:v] video gốc
+        "-i", avatar_path,      # [1:v] avatar
+        "-i", person_path,      # [2:v] person
         "-filter_complex",
-        f"[0:v][1:v]overlay=W-w-{right_margin}:H-h-{bottom_margin}",
+        f"""
+        [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7}[avatar];
+        [2:v]scale=iw*{0.65}:ih*{0.65}[person];
+        [0:v][avatar]overlay=W-w-{50}:{50}[v1];
+        [v1][person]overlay={40}:H-h-{0}
+        """.replace('\n', ''),
         "-c:v", "libx264",
         "-preset", "ultrafast",
         "-crf", "28",
         "-c:a", "copy",
+        "-movflags", "+faststart",
         output_video
     ]
 
     subprocess.run(cmd, check=True)
     
-def concat_content_videos_ffmpeg(intro_path, short_link_path, short_link_out_path, audio_out_path, video_path_list, out_path, draf_out_path, draf_out_path_2, draf_out_path_3):
+def concat_content_videos_ffmpeg(intro_path, short_link_path,short_link_out_path, avatar_path, person_path, audio_out_path, video_path_list, out_path, draf_out_path, draf_out_path_2, draf_out_path_3):
     if short_link_path is not None:
         print('tạo thumb trong ad')
-        add_thumbnail_to_video(short_link_path, './videos/thumbnail.jpg', './videos/thumbnail-tiny.jpg', short_link_out_path)
+        add_thumbnail_to_video(short_link_path, avatar_path, person_path, short_link_out_path)
         
     # Load âm thanh
     audio_duration = get_media_duration(audio_out_path)
@@ -1442,7 +1314,7 @@ def check_file_exists_on_vps(host, username, password, remote_path, port=22):
         return False
     
 
-def generate_thumbnail_moviepy_c2(img_path, img_blur_path, img_person_path, draf_path, out_path, text):
+def generate_thumbnail_moviepy_c2(img_path, img_blur_path, img_person_path, bar_path, bg_path, draf_path, out_path, text):
     text = text.upper()
     # Mở ảnh thứ nhất (ảnh nền chính)
     background = Image.open(img_path)
@@ -1459,7 +1331,7 @@ def generate_thumbnail_moviepy_c2(img_path, img_blur_path, img_person_path, draf
     if img_person_path is not None:
         overlay = Image.open(img_person_path)
         overlay = overlay.resize((int(1920 * 0.8), int(1080 * 0.8)))
-    overlay2 = Image.open('./public/bar-2.png')
+    overlay2 = Image.open(bar_path)
 
     # Đảm bảo ảnh overlay có kênh alpha
     if img_person_path is not None and overlay.mode != 'RGBA':
@@ -1528,7 +1400,7 @@ def generate_thumbnail_moviepy_c2(img_path, img_blur_path, img_person_path, draf
 
     # lưu ảnh với bg 
     jpg_image = Image.open(draf_path)  
-    png_image = Image.open('./public/bg/bg-2.png')
+    png_image = Image.open(bg_path)
     png_image = png_image.convert("RGBA")
     jpg_image.paste(png_image, (0, 0), png_image)
     jpg_image.save(out_path)
@@ -1547,7 +1419,7 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
 def check_identity_verification(name_chrome_yt):
     try:
         video_path = os.path.abspath(f"./public/kokoro.mp4"),
-        thumb_path = os.path.abspath(f"./public/bg/bg-2.png"),
+        thumb_path = os.path.abspath(f"./public/decorates/decorate1/bg.png"),
         user_data_dir = os.path.abspath(f"./youtubes/{name_chrome_yt}")
         
         # Tạo đối tượng ChromeOptions

@@ -33,43 +33,39 @@ def get_collect(name_db, name_collection):
     collection = db[name_collection]
     return collection
 
-# -------------- links news
+# -------------- links news2
 
 
 def get_all_links():
-    collection = get_collect('news', 'links')
+    collection = get_collect('news2', 'links')
     # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
     links = [doc["link"] for doc in collection.find({}, {"link": 1, "_id": 0})]
     return links
 
 
-def check_authorization():
-    collection = get_collect('news', 'authorization')
-    return collection.find_one({"password": "Cuem161201@"}) is not None
-
 
 def check_link_exists(link):
-    collection = get_collect('news', 'links')
+    collection = get_collect('news2', 'links')
     return collection.find_one({"link": link}) is not None
 
 
 def insert_link(link):
-    collection = get_collect('news', 'links')
+    collection = get_collect('news2', 'links')
     collection.insert_one({"link": link})
 
 
 def delete_link(link):
-    collection = get_collect('news', 'links')
+    collection = get_collect('news2', 'links')
     collection.delete_one({"link": link})
 
 
 def get_webiste(name):
-    collection = get_collect('news', 'websites')
+    collection = get_collect('news2', 'websites')
     return collection.find_one({"name": name})
 
 
 def insert_or_update_website(name):
-    collection = get_collect('news', 'websites')
+    collection = get_collect('news2', 'websites')
     current_time = datetime.now()
     existing_website = collection.find_one({"name": name})
 
@@ -92,7 +88,7 @@ def insert_or_update_website(name):
 
 def check_not_exist_to_create_ip():
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     data = collection.find_one({"ip": local_ip})
 
     if data is False or data is None:
@@ -106,7 +102,7 @@ def check_not_exist_to_create_ip():
 
 def find_one_ip():
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     return collection.find_one({"ip": local_ip})
 
 
@@ -119,29 +115,30 @@ def check_exist_youtube_in_ip(name_chrome_yt):
 
 def update_driver_path_to_ip(driver_path):
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     collection.update_one(
         {"ip": local_ip},
         {"$set": {"driverPath": driver_path}}
     )
 
 
-def add_youtube_to_ip(name_chrome_yt, ad_path, decorate_path):
+def add_youtube_to_ip(name_chrome_yt, ad_path, decorate_path, func):
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     collection.update_one(
         {"ip": local_ip},
         {"$push": {"youtubes": {
             "name": name_chrome_yt,
             "ad_path": ad_path,
-            "decorate_path": decorate_path
+            "decorate_path": decorate_path,
+            "func": func,
         }}}
     )
 
 
 def remove_youtube_to_ip(name_chrome_yt):
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     collection.update_one(
         {"ip": local_ip},
         {"$pull": {"youtubes": {"name": name_chrome_yt}}}
@@ -150,7 +147,7 @@ def remove_youtube_to_ip(name_chrome_yt):
 
 def add_gemini_key_to_ip(key):
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     collection.update_one(
         {"ip": local_ip},
         {"$push": {"geminiKeys": key}}
@@ -159,75 +156,54 @@ def add_gemini_key_to_ip(key):
 
 def remove_gemini_key_youtube_to_ip(key):
     local_ip = getIp()
-    collection = get_collect('news', 'ips')
+    collection = get_collect('news2', 'ips')
     collection.update_one(
         {"ip": local_ip},
         {"$pull": {"geminiKeys": key}}
     )
 
-
+# 
 def get_func_to_get_info_new():
-    collect = get_collect('news', 'func_vn')
+    collect = get_collect('news2', 'func_vn')
     data = collect.find({}, {})
     return list(data)
 
 
-def check_link_sitemap_exists(link):
-    collection = get_collect('news', 'link_sitemap_vn')
-    return collection.find_one({"link": link}) is not None
-
-
-def insert_sitemap_link(name, link):
-    collection = get_collect('news', 'link_sitemap_vn')
-    collection.insert_one({"link": link, "name": name})
-
-
-def delete_sitemap_link(link):
-    collection = get_collect('news', 'link_sitemap_vn')
-    collection.delete_one({"link": link})
-
-
-def get_all_sitemap_links(is_get_name=False):
-    collection = get_collect('news', 'link_sitemap_vn')
-    # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
-    links = [doc["link"] if is_get_name is False else {
-        "link": doc["link"],
-        "name": doc["name"]
-    } for doc in collection.find({}, {"link": 1, "name": 1, "_id": 0})]
-    return links
 
 
 def get_times():
-    collection = get_collect('news', 'times')
+    collection = get_collect('news2', 'times')
     # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
     times = collection.find({}, {})
     return list(times)
 
 
-def insert_time(time1, time2, time3):
-    collection = get_collect('news', 'times')
+def insert_time(time1, time2, time3, time4):
+    collection = get_collect('news2', 'times')
     # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
     collection.insert_one({
         "time1": time1,
         "time2": time2,
-        "time3": time3
+        "time3": time3,
+        "time4": time4,
     })
 
 
-def update_time(id, time1, time2, time3):
-    collection = get_collect('news', 'times')
+def update_time(id, time1, time2, time3, time4):
+    collection = get_collect('news2', 'times')
     # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
     collection.update_one({"_id": id}, {
         "$set": {
             "time1": time1,
             "time2": time2,
-            "time3": time3
+            "time3": time3,
+            "time4": time4,
         }
     })
 
 
 def get_all_models():
-    collection = get_collect('news', 'models')
+    collection = get_collect('news2', 'models')
     # Truy vấn tất cả các tài liệu và chỉ lấy trường "link"
     models = [doc["model"]
               for doc in collection.find({}, {"model": 1, "_id": 0})]
@@ -235,15 +211,40 @@ def get_all_models():
 
 
 def check_model_exists(model):
-    collection = get_collect('news', 'models')
+    collection = get_collect('news2', 'models')
     return collection.find_one({"model": model}) is not None
 
 
 def insert_model(model):
-    collection = get_collect('news', 'models')
+    collection = get_collect('news2', 'models')
     collection.insert_one({"model": model})
 
 
 def delete_model(model):
-    collection = get_collect('news', 'models')
+    collection = get_collect('news2', 'models')
     collection.delete_one({"model": model})
+
+# add func to get info new
+def get_func(name):
+    collection = get_collect('news2', 'funcs')
+    return collection.find_one({"name": name })
+    
+
+def get_funcs():
+    collection = get_collect('news2', 'funcs')
+    data = collection.find({}, {})
+    return list(data)
+
+def add_func(name, func, func2):
+    collection = get_collect('news2', 'funcs')
+    collection.insert_one({
+        "name": name,
+        "func": func,
+        "func2": func2
+    })
+    
+def delete_func(name):
+    collection = get_collect('news2', 'funcs')
+    collection.insert_one({
+        "name": name
+    })

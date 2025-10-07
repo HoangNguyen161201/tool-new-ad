@@ -1,10 +1,10 @@
 import shutil
 import os
-from untils import get_links_get_content, write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg, get_all_link_in_theguardian_new
+from untils import write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg, get_all_link_in_theguardian_new
 from untils import concat_content_videos_ffmpeg, concat_content_videos_moviepy, get_img_person, generate_image_ffmpeg, generate_image_moviepy, generate_video_by_image_moviepy, generate_content, generate_content_improved
-from untils import get_link_in_sitemap, upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
+from untils import upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
 from untils import clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
-from db_mongodb import get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_all_sitemap_links, insert_sitemap_link, delete_sitemap_link, get_func_to_get_info_new, check_link_exists, insert_link, check_authorization, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
+from db_mongodb import get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
 import random
 from concurrent.futures import ThreadPoolExecutor, wait
 # from slugify import slugify
@@ -86,16 +86,11 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
         data_by_ip = find_one_ip()
         times = get_times()
         models = get_all_models()
-
-        # check authorization
-        is_authorization = check_authorization()
-        if is_authorization is False or is_authorization is False:
-            raise Exception("Lỗi xảy ra")
+        func_get_info_new = get_func(data_by_ip['youtubes'][index_youtube]['func'])
 
         try:
             start_time = time.time()
             current_link = None
-            name = None
 
             # tạo folder để chứa video
             path_folder = './videos'
@@ -109,17 +104,22 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             clear_cache_chrome(
                 f"./youtubes/{data_by_ip['youtubes'][index_youtube]}")
 
-            # lấy tất cả link tin tức
-            links = get_links_get_content()
+            # lấy tất cả link tin tức           
+            namespace = {}
+            exec(func_get_info_new['func'], globals(), namespace)
+            links = namespace['get_new_links']()
+            print(links)
+
 
             for data_link in links:
-                if not check_link_exists(data_link['link']):
-                    current_link = data_link['link']
-                    name = data_link['name']
+                if not check_link_exists(data_link):
+                    current_link = data_link
                     insert_link(current_link)
                     break
 
-            print(current_link, name)
+            print(current_link)
+            time.sleep(10000)
+            
             if current_link is None:
                 raise Exception(
                     "Lỗi xảy ra, không tồn tại link hoặc đã hết tin tức")
@@ -220,7 +220,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     [
                         new_info['title'],
                         f"news,{new_info['tags']},breaking news,current events,",
-                        f"[Nguồn: {name}] {new_info['description']}\n\n(tags):\n{', '.join(new_info['tags'])}"
+                        f"{new_info['description']}\n\n(tags):\n{', '.join(new_info['tags'])}"
                     ]
                 )
 
@@ -286,8 +286,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             message = str(e)
 
             if "Lỗi xảy ra, không tồn tại link hoặc đã hết tin tức" in message:
-                print(f"{message} → Đợi {
-                      times[0]['time1']} phút rồi thử lại...")
+                print(f"{message} → Đợi {times[0]['time1']} phút rồi thử lại...")
                 data = 5
                 while data < (60 * times[0]['time1']):
                     print(f'đợi {times[0]['time1']} phút vì hết link')
@@ -306,8 +305,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                         gemini_key_index = 0
                 print('Cập nhật model và key của gemini')
                 print(f'Model của bạn là: {models[gemini_model_index]}')
-                print(f'key của bạn là: {
-                      data_by_ip['geminiKeys'][gemini_key_index]}')
+                print(f'key của bạn là: {data_by_ip['geminiKeys'][gemini_key_index]}')
 
                 time.sleep(60)
 
@@ -356,6 +354,7 @@ if __name__ == "__main__":
                     else:
                         index_ad = None
                         index_decorate = None
+                        index_func = None
 
                         folder_ad_path = './public/ad_videos'
                         items = os.listdir(folder_ad_path)
@@ -385,9 +384,20 @@ if __name__ == "__main__":
                             if (index_decorate > folders.__len__() - 1):
                                 print('lỗi cú pháp, vui lòng nhập lại')
                                 index_decorate = None
+                                
+                        funcs = get_funcs()
+                        while index_func is None:
+                            for index, func in enumerate(funcs):
+                                print(f'{index}. {func['name']}')
+
+                            index_func = int(
+                                input("nhập index để chọn trang web lấy dữ liệu:"))
+                            if (index_func > funcs.__len__() - 1):
+                                print('lỗi cú pháp, vui lòng nhập lại')
+                                index_func = None
 
                         add_youtube_to_ip(
-                            text, f'./public/ad_videos/{files[index_ad]}', f'./public/decorates/{folders[index_decorate]}')
+                            text, f'./public/ad_videos/{files[index_ad]}', f'./public/decorates/{folders[index_decorate]}', funcs[index_func]['name'])
                         open_chrome_to_edit(text, data.get('driverPath'))
                 elif func1.startswith("2-"):
                     text = func1[2:]
@@ -509,7 +519,7 @@ if __name__ == "__main__":
                     update_driver_path_to_ip(text)
 
         elif func == 4:
-            while func == 5:
+            while func == 4:
                 data = get_times()
                 print('|-----------------------------------------------|')
                 print('|---         Chỉnh sửa thời gian            ----|')
@@ -523,11 +533,14 @@ if __name__ == "__main__":
                           data[0]['time2']} phút')
                     print(f'Thời gian đợi khi upload thành công nếu có nhiều kênh: {
                           data[0]['time3']} phút')
+                    print(f'Thời gian nghỉ cuối ngày: {
+                          data[0]['time4']} phút')
 
                 print('|-1. thời gian đợi khi hết link, thời gian chờ -|')
                 print('| khi úp yt thành công nếu chỉ 1 kênh, thời    -|')
-                print('| gian khi úp yt thành công nếu có nhiều kênh  -|')
-                print('| (nhập 1-time1-time2-time3) (phút)            -|')
+                print('| gian khi úp yt thành công nếu có nhiều kênh, -|')
+                print('| thời gian nghỉ cuối ngày                   , -|')
+                print('| (nhập 1-time1-time2-time3-time4) (phút)      -|')
                 print('|-0. Quay lại                            -------|')
 
                 func3 = input("Nhập chọn chức năng: ")
@@ -535,23 +548,22 @@ if __name__ == "__main__":
                     func = 'exit'
                 elif func3.startswith("1-"):
                     arr = func3.split('-')
-                    if (arr.__len__() != 4):
+                    if (arr.__len__() != 5):
                         print('Không đúng cú pháp')
-                    elif not arr[1].isdigit() or not arr[2].isdigit() or not arr[3].isdigit():
+                    elif not arr[1].isdigit() or not arr[2].isdigit() or not arr[3].isdigit() or not arr[4].isdigit():
                         print('Không đúng cú pháp')
-                    elif int(arr[1]) <= 0 or int(arr[2]) <= 0 or int(arr[3]) <= 0:
+                    elif int(arr[1]) <= 0 or int(arr[2]) <= 0 or int(arr[3]) <= 0 or int(arr[4]) <= 0:
                         print('Thời gian không được nhỏ hơn hoặc bằng 0')
                     else:
                         if (data.__len__() == 0):
-                            insert_time(int(arr[1]), int(arr[2]), int(arr[3]))
+                            insert_time(int(arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
                         else:
                             update_time(data[0]['_id'], int(
-                                arr[1]), int(arr[2]), int(arr[3]))
+                                arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
 
         elif func == 5:
             data = find_one_ip()
             times = get_times()
-            link_sitemaps = get_all_sitemap_links()
             if (data.get('geminiKeys') is None or data['geminiKeys'].__len__() == 0):
                 print('bạn chưa thể chạy vì chưa thêm gemini key')
             elif (data.get('youtubes') is None or data['youtubes'].__len__() == 0):

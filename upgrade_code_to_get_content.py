@@ -1,111 +1,79 @@
 from untils import func_to_string
-from db_mongodb import get_collect
+from db_mongodb import add_func
+
+def get_new_links():
+    from bs4 import BeautifulSoup
+    import requests
+    
+    url = 'https://www.theguardian.com/world'
+    headers = {
+        'User-Agent': 'Mozilla/5.0'
+    }
+
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    link = []
+    # Lọc các thẻ <a> thỏa điều kiện
+    for a in soup.find_all('a', href=True):
+        data_link = a.get('data-link-name', '')
+        if 'card-@1' in data_link and 'live' not in data_link:
+            link.append(f'https://www.theguardian.com{a['href']}')
+    return link
+
+
 
 def get_info_new(url):
-    import requests
-    from bs4 import BeautifulSoup
-    from collections import defaultdict
-    import re
-    from urllib.parse import urlparse
+    try:
+        from bs4 import BeautifulSoup
+        import requests
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0'
+        }
+
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # title, description and content
+        title = None
+        meta_tag = soup.find('meta', attrs={'property': 'og:title'})
+        if meta_tag:
+            title = meta_tag.get('content', None)
+
+        description = None
+        meta_tag = soup.find('meta', attrs={'name': 'description'})
+        if meta_tag:
+            description = meta_tag.get('content', None)
+
+        tags = None
+        meta_tag = soup.find('meta', attrs={'property': 'article:tag'})
+        if meta_tag:
+            tags = meta_tag.get('content', None)
+
+        content = soup.find('div', {'id': 'maincontent'}).get_text()
+
+        # pictures
+        pictures = soup.find_all('picture', class_='dcr-evn1e9')
+        picture_links = []
+        for item in pictures:
+            source = item.find(['source', 'img'], srcset = True)
+            picture_links.append(source['srcset'])
+        if(picture_links.__len__() == 0 or content is None or content is None or content is None or content is None):
+            return None
+        
+        return {
+            "content": content,
+            "title": title,
+            "description": description,
+            "tags": tags,
+            "picture_links": picture_links
+        }
+    except:
+      return None
+  
+
     
-    def normalize_img_url(url):
-        # Bỏ query string, chỉ lấy tên file cuối
-        clean_url = urlparse(url).path.split("/")[-1]
-        # Bỏ số kích thước kiểu -640w
-        return re.sub(r"-\d+w", "", clean_url)
+func = func_to_string(get_new_links)
+func2 = func_to_string(get_info_new)
 
-    def extract_images(container):
-        images = {}
-
-        # Regex tìm URL có đuôi ảnh
-        pattern = re.compile(r"https?://[^\s\"']+\.(?:jpg|jpeg|png|gif|webp|avif|svg)(?:\?[^\s\"']*)?", re.IGNORECASE)
-
-        # Quét toàn bộ text trong container
-        for match in pattern.findall(str(container)):
-            key = normalize_img_url(match)
-            images[key] = match  # ghi đè => giữ link cuối (thường to nhất)
-
-        return list(images.values())
-
-
-    headers = {"User-Agent": "Mozilla/5.0"}
-    resp = requests.get(url, headers=headers)
-    resp.encoding = resp.apparent_encoding
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    # Bỏ qua script/style
-    for bad in soup(["script", "style", "noscript", "iframe"]):
-        bad.decompose()
-
-    # Tìm tất cả p
-    p_tags = soup.find_all("p")
-
-    # Gom theo cha (dùng p để xác định cha chính)
-    scores = defaultdict(int)
-    for p in p_tags:
-        parent = p.find_parent()
-        if parent:
-            scores[parent] += len(p.get_text(strip=True))
-
-    # Thẻ cha chứa nhiều text nhất
-    best_parent = max(scores, key=scores.get)
-
-    # Lấy toàn bộ text từ các thẻ con quan trọng (không chỉ <p>)
-    allowed_tags = {"p", "h1", "h2", "h3", "h4", "li", "blockquote"}
-
-    content = ''
-
-    for child in best_parent.find_all(allowed_tags):
-        text = child.get_text(strip=True)
-        if text:
-            content += text
-            
-    article_images = extract_images(best_parent)
-    title = soup.find("title").get_text()
-    description = None
-    meta_tag = soup.find('meta', attrs={'name': 'description'})
-    if meta_tag:
-        description = meta_tag.get('content', None)
-    print(description)
-
-    def extract_tags(soup):
-        candidates = [
-            {"attr": "property", "value": "article:tag"},
-            {"attr": "name", "value": "keywords"},
-            {"attr": "name", "value": "news_keywords"},
-            {"attr": "property", "value": "article:section"},
-            {"attr": "name", "value": "tags"},
-        ]
-
-        tags = []
-
-        for c in candidates:
-            metas = soup.find_all("meta", attrs={c["attr"]: c["value"]})
-            for m in metas:
-                content = m.get("content")
-                if content:
-                    # tách nếu có nhiều tag phân cách bằng dấu phẩy
-                    parts = [x.strip() for x in content.split(",") if x.strip()]
-                    tags.extend(parts)
-
-        return list(set(tags))
-    
-    tags = extract_tags(soup)
-    
-    if(article_images is None or article_images.__len__() == 0 ):
-        return None
-    
-    return {
-        "content": content,
-        "title": title,
-        "description": description,
-        "tags": tags,
-        "picture_links": article_images
-    }
-    
-func = func_to_string(get_info_new)
-
-collect = get_collect('news', 'func_vn')
-collect.insert_one({
-    "func": func
-})
+add_func('theguardian', func, func2)

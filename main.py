@@ -116,9 +116,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     current_link = data_link
                     insert_link(current_link)
                     break
-
             print(current_link)
-            time.sleep(10000)
             
             if current_link is None:
                 raise Exception(

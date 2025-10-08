@@ -1,2 +1,3 @@
-from untils import normalize_video
-duration = normalize_video('./public/ad_videos/Sequence 01_6.mp4', './public/ad_videos/ad1.mkv')
+from untils import add_thumbnail_to_video
+
+add_thumbnail_to_video('./public/ad_videos/ad1.mkv', './public/decorates/decorate1/avatar.png', './public/decorates/decorate1/persons/person_1.png', './output.mkv')

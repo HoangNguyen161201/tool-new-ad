@@ -279,14 +279,14 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                 description = ''.join(lines[2:]).strip() if len(
                     lines) >= 3 else ''
             title_slug = slugify(title)
-            os.rename(f"{path_folder}/result.mkv",
-                      f"{path_folder}/{title_slug}.mkv")
+            os.rename(f"{path_folder}/result.mp4",
+                      f"{path_folder}/{title_slug}.mp4")
             upload_yt(
                 f"./youtubes/{youtube['name']}",
                 title,
                 description,
                 tags,
-                os.path.abspath(f"{path_folder}/{title_slug}.mkv"),
+                os.path.abspath(f"{path_folder}/{title_slug}.mp4"),
                 os.path.abspath(f"{path_folder}/thumbnail.jpg"),
             )
             print('thông tin kênh youtube đã đăng:')

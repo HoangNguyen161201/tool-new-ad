@@ -902,7 +902,7 @@ def add_thumbnail_to_video(input_video, avatar_path, person_path, output_video):
         f"""
         [1:v]scale=200:200,format=rgba,colorchannelmixer=aa={0.7}[avatar];
         [2:v]scale=iw*{0.65}:ih*{0.65}[person];
-        [0:v][avatar]overlay=W-w-{1920 - 270}:{40}[v1];
+        [0:v][avatar]overlay=W-w-70:{40}[v1];
         [v1][person]overlay={40}:H-h-{0}
         """.replace('\n', ''),
         "-c:v", "libx264",

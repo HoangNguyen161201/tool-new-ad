@@ -239,7 +239,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     [
                         new_info['title'],
                         f"news,{new_info['tags']},breaking news,current events,",
-                        f"{new_info['description']}\n\n📌BingX Registration Link: https://bingx.com/invite/EJQMPE/\n\n(tags):\n{', '.join(new_info['tags'])}"
+                        f"{new_info['description']}\n\n📌BingX Registration Link: https://bingx.com/invite/EJQMPE/\n\n(tags):\n{', '.join(new_info['tags'].split(','))}"
                     ]
                 )
 

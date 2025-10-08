@@ -1,18 +1,16 @@
 import shutil
 import os
-from untils import write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg, get_all_link_in_theguardian_new
+from untils import write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg
 from untils import concat_content_videos_ffmpeg, concat_content_videos_moviepy, get_img_person, generate_image_ffmpeg, generate_image_moviepy, generate_video_by_image_moviepy, generate_content, generate_content_improved
 from untils import upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
 from untils import clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
-from db_mongodb import get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
+from db_mongodb import get_next_youtube, get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
 import random
 from concurrent.futures import ThreadPoolExecutor, wait
-# from slugify import slugify
 from django.utils.text import slugify
 import time
 import shutil
-import requests
-from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 
 
 def create_video_by_image(path_folder, key, link, type_run_video='ffmpeg', person_path=None, avatar_path=None, is_delete=False):
@@ -77,22 +75,41 @@ def create_video_by_image(path_folder, key, link, type_run_video='ffmpeg', perso
 
 
 def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
-    index_youtube = 0
     gemini_key_index = 0
     gemini_model_index = 0
     current_link = None
     while True:
+        
         # lấy data
-        data_by_ip = find_one_ip()
+        print('lấy thời gian')
         times = get_times()
+        print('lấy thông tin của địa chỉ ip')
+        data_by_ip = find_one_ip()
+        print('lấy kênh youtube hiện tại để đăng')
+        youtube = get_next_youtube(data_by_ip)
+        print('lấy model gemini')
         models = get_all_models()
-        func_get_info_new = get_func(data_by_ip['youtubes'][index_youtube]['func'])
-
+        print('lấy hàm để lấy thông tin link new')
+        func_get_info_new = get_func(youtube['func'])
+        
+            
+            
         try:
+            #kiểm tra cuối ngày hay chưa
+            print('kiểm tra đã cuối ngày chưa')
+            now = datetime.now()
+            end_of_day = datetime.combine(now.date(), datetime.max.time())
+            start_of_period = end_of_day - timedelta(minutes=times[0]['time4'])
+            
+            if now >= start_of_period:
+                raise Exception("Lỗi xảy ra, tới thời gian nghỉ")
+            
+            #-------------------------
             start_time = time.time()
             current_link = None
 
             # tạo folder để chứa video
+            print('xóa dữ liễu cũ trong folder videos')
             path_folder = './videos'
             try:
                 shutil.rmtree(path_folder)
@@ -102,9 +119,10 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
 
             # clear cache chrome
             clear_cache_chrome(
-                f"./youtubes/{data_by_ip['youtubes'][index_youtube]}")
+                f"./youtubes/{youtube['name']}")
 
-            # lấy tất cả link tin tức           
+            # lấy tất cả link tin tức
+            print('lấy tất cả link tin tức')           
             namespace = {}
             exec(func_get_info_new['func'], globals(), namespace)
             links = namespace['get_new_links']()
@@ -123,29 +141,31 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     "Lỗi xảy ra, không tồn tại link hoặc đã hết tin tức")
 
             # lấy thông tin tin tức
-            funcs = get_func_to_get_info_new()
+            print('lấy thông tin của new')
             namespace = {}
-            exec(funcs[0]['func'], globals(), namespace)
+            exec(func_get_info_new['func2'], globals(), namespace)
             new_info = namespace['get_info_new'](current_link)
+            
             if new_info is None:
                 raise Exception("Lỗi xảy ra, không có thông tin của content")
-
             print(new_info)
 
             # ảnh người thuyết trình
+            print('lấy random hình ảnh người')
             person_path = get_img_person(
-                f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/persons')
+                f'{youtube['decorate_path']}/persons')
 
             path_videos = []
 
             # not run parallel create child --------------------------------------------------------------------------------
+            print('tạo các phần video từ hình ảnh')
             if is_not_run_parallel_create_child_video is True:
                 for key, link in enumerate(new_info['picture_links']):
                     link_child_video = create_video_by_image(
-                        path_folder, key, link, type_run_video, person_path, f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/avatar.png', True if key > 0 else False)
+                        path_folder, key, link, type_run_video, person_path, f'{youtube['decorate_path']}/avatar.png', True if key > 0 else False)
                     path_videos.append(link_child_video)
                     
-
+            print('tạo content từ gemini')
             # chạy song song các task: xử lý title/desc, content, ảnh aff, video từng ảnh
             with ThreadPoolExecutor(max_workers=6) as executor:
                 future1 = executor.submit(generate_title_description_improved, new_info['title'], new_info[
@@ -158,7 +178,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                 # not run parallel create child -----------------------------------------------------------------------------
                 future_videos = None if is_not_run_parallel_create_child_video is True else [
                     executor.submit(create_video_by_image, path_folder, key,
-                                    link, type_run_video, person_path, f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/avatar.png', True if key > 0 else False)
+                                    link, type_run_video, person_path, f'{youtube['decorate_path']}/avatar.png', True if key > 0 else False)
                     for key, link in enumerate(new_info['picture_links'])
                 ]
 
@@ -184,13 +204,14 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             #     raise Exception("Lỗi xảy ra, không thể tạo và lấy ra 3 product ngẫu nhiên")
 
             # tạo thumbnail, voice, file txt — vẫn song song nhưng nhẹ hơn
+            print('tạo thumbnail và tạo voice')
             with ThreadPoolExecutor(max_workers=3) as executor:
                 future1 = executor.submit(
                     generate_thumbnail,
                     f"{path_folder}/image-0.jpg",
                     person_path,
-                    f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/bar.png',
-                    f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/bg.png',
+                    f'{youtube['decorate_path']}/bar.png',
+                    f'{youtube['decorate_path']}/bg.png',
                     f"{path_folder}/draf-thumbnail.jpg",
                     f"{path_folder}/thumbnail.jpg",
                     new_info['title'].replace('*', '')
@@ -199,8 +220,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     f"{path_folder}/image-0.jpg",
                     f"{path_folder}/image-blur-0.jpg",
                     person_path,
-                    f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/bar.png',
-                    f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/bg.png',
+                    f'{youtube['decorate_path']}/bar.png',
+                    f'{youtube['decorate_path']}/bg.png',
                     f"{path_folder}/draf-thumbnail.jpg",
                     f"{path_folder}/thumbnail.jpg",
                     new_info['title'].replace('*', '')
@@ -218,7 +239,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     [
                         new_info['title'],
                         f"news,{new_info['tags']},breaking news,current events,",
-                        f"{new_info['description']}\n\n(tags):\n{', '.join(new_info['tags'])}"
+                        f"{new_info['description']}\n\n📌BingX Registration Link: https://bingx.com/invite/EJQMPE/\n\n(tags):\n{', '.join(new_info['tags'])}"
                     ]
                 )
 
@@ -226,13 +247,13 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                 future2.result()
                 future3.result()
                 
-
+            print('nối các video lại')
             if type_run_video == 'ffmpeg' or type_run_video == 'cv2':
                 concat_content_videos_ffmpeg(
                     './public/more/intro.mkv',
-                    f'{data_by_ip['youtubes'][index_youtube]['ad_path']}',
+                    f'{youtube['ad_path']}',
                     f"{path_folder}/ad.mkv",
-                    f'{data_by_ip['youtubes'][index_youtube]['decorate_path']}/avatar.png',
+                    f'{youtube['decorate_path']}/avatar.png',
                     person_path,      
                     f"{path_folder}/content-voice.aac",
                     path_videos,
@@ -247,8 +268,6 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
 
             end_time = time.time()
             print(f"Thời gian chạy: {end_time - start_time:.2f} giây")
-            
-            time.sleep(10000)
 
             title = ''
             tags = ''
@@ -263,21 +282,28 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             os.rename(f"{path_folder}/result.mkv",
                       f"{path_folder}/{title_slug}.mkv")
             upload_yt(
-                f"./youtubes/{data_by_ip['youtubes'][index_youtube]}",
+                f"./youtubes/{youtube['name']}",
                 title,
                 description,
                 tags,
                 os.path.abspath(f"{path_folder}/{title_slug}.mkv"),
                 os.path.abspath(f"{path_folder}/thumbnail.jpg"),
             )
+            print('thông tin kênh youtube đã đăng:')
+            print(youtube)
             if data_by_ip['youtubes'].__len__() > 1:
                 index_youtube += 1
                 if (data_by_ip['youtubes'].__len__() <= index_youtube):
                     index_youtube = 0
-                print(f'chờ {times[0]['time3']} phút')
+                
+                now = datetime.now()
+                new_time = now + timedelta(minutes=times[0]['time3'])
+                print(f'Thời gian đăng video tiếp theo: {new_time.strftime("%Y-%m-%d %H:%M:%S")}')
                 time.sleep(60 * times[0]['time3'])
             else:
-                print(f'chờ {times[0]['time2']} phút')
+                now = datetime.now()
+                new_time = now + timedelta(minutes=times[0]['time2'])
+                print(f'Thời gian đăng video tiếp theo: {new_time.strftime("%Y-%m-%d %H:%M:%S")}')
                 time.sleep(60 * times[0]['time2'])
             print('Tiếp tục...')
         except Exception as e:
@@ -291,8 +317,22 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     time.sleep(5)
                     data += 5
             elif "Lỗi xảy ra, không có thông tin của content" in message:
-                insert_link(current_link)
                 print(f"Lỗi xảy ra, không có thông tin của content")
+            elif "Lỗi xảy ra, tới thời gian nghỉ" in message:
+                print(f"Đã cuối ngày, vui lòng đợi tới ngày mới để đăng tiếp")
+                current_day = datetime.now().date()
+                while True:
+                    now = datetime.now()
+
+                    # Kiểm tra nếu sang ngày mới
+                    if now.date() != current_day:
+                        print("Đã sang ngày mới:", now.date())
+                        break
+
+                    print("Đợi qua ngày... ", now.strftime("%H:%M:%S"))
+                    time.sleep(5)
+            
+        
             else:
                 print(f"[LỖI KHÁC] {message}")
                 gemini_model_index += 1
@@ -409,13 +449,13 @@ if __name__ == "__main__":
                         print('Không thể xóa vì chưa tồn tại chrome youtube này')
                 elif func1.startswith("3-"):
                     text = func1[2:]
-                    if (data.get('youtubes') is not None and text in data.get("youtubes", [])):
+                    if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
                         open_chrome_to_edit(text, data.get('driverPath'))
                     else:
                         print('Chưa tồn tại trình duyệt này')
                 elif func1.startswith("4-"):
                     text = func1[2:]
-                    if (data.get('youtubes') is not None and text in data.get("youtubes", [])):
+                    if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
                         check_identity_verification(text)
                     else:
                         print('Chưa tồn tại trình duyệt này')

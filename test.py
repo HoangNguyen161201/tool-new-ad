@@ -1,3 +1,4 @@
-from untils import add_thumbnail_to_video
+from untils import get_media_duration
 
-add_thumbnail_to_video('./public/ad_videos/ad1.mkv', './public/decorates/decorate1/avatar.png', './public/decorates/decorate1/persons/person_1.png', './output.mkv')
+result_duration = get_media_duration(f"./public/ad_videos/ad1.mkv")
+print(result_duration)

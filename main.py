@@ -83,6 +83,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
         # lấy data
         print('lấy thời gian')
         times = get_times()
+        print(times)
+        time.sleep(10000)
         print('lấy thông tin của địa chỉ ip')
         data_by_ip = find_one_ip()
         print('lấy kênh youtube hiện tại để đăng')
@@ -298,10 +300,6 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             print('thông tin kênh youtube đã đăng:')
             print(youtube)
             if data_by_ip['youtubes'].__len__() > 1:
-                index_youtube += 1
-                if (data_by_ip['youtubes'].__len__() <= index_youtube):
-                    index_youtube = 0
-                
                 now = datetime.now()
                 new_time = now + timedelta(minutes=times[0]['time3'])
                 print(f'Thời gian đăng video tiếp theo: {new_time.strftime("%Y-%m-%d %H:%M:%S")}')

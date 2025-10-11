@@ -83,8 +83,6 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
         # lấy data
         print('lấy thời gian')
         times = get_times()
-        print(times)
-        time.sleep(10000)
         print('lấy thông tin của địa chỉ ip')
         data_by_ip = find_one_ip()
         print('lấy kênh youtube hiện tại để đăng')

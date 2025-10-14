@@ -1,32 +1,41 @@
 from untils import func_to_string
 from db_mongodb import add_func
+import time
+
 
 def get_new_links():
     from bs4 import BeautifulSoup
     import requests
-    
-    url = 'https://www.theguardian.com/world'
+
+    url = 'https://www.eonline.com/news'
     headers = {
         'User-Agent': 'Mozilla/5.0'
     }
 
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
-    link = []
-    # Lọc các thẻ <a> thỏa điều kiện
-    for a in soup.find_all('a', href=True):
-        data_link = a.get('data-link-name', '')
-        if 'card-@1' in data_link and 'live' not in data_link:
-            link.append(f'https://www.theguardian.com{a['href']}')
-    return link
 
+    top_items = soup.find_all('div', class_='top-two__item')
+    link = []
+    for item in top_items:
+        data = item.find('a')['href']
+        if '/news/' in data:
+            link.append(f'https://www.eonline.com{data}')
+
+    old_items = soup.find_all('div', class_='content-item')
+    for item in old_items:
+        data = item.find('a')['href']
+        if '/news/' in data:
+            link.append(f'https://www.eonline.com{data}')
+
+    return link
 
 
 def get_info_new(url):
     try:
         from bs4 import BeautifulSoup
         import requests
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0'
         }
@@ -39,7 +48,7 @@ def get_info_new(url):
         meta_tag = soup.find('meta', attrs={'property': 'og:title'})
         if meta_tag:
             title = meta_tag.get('content', None)
-
+        
         description = None
         meta_tag = soup.find('meta', attrs={'name': 'description'})
         if meta_tag:
@@ -50,17 +59,24 @@ def get_info_new(url):
         if meta_tag:
             tags = meta_tag.get('content', None)
 
-        content = soup.find('div', {'id': 'maincontent'}).get_text()
-
+        main = soup.find('div', {'class': 'container'})
+        content = main.get_text()
+        marker = "For the latest breaking news updates, click here to download the E! News App"
+        if marker in content:
+            content = content.split(marker)[0].strip()
+                
         # pictures
-        pictures = soup.find_all('picture', class_='dcr-evn1e9')
         picture_links = []
-        for item in pictures:
-            source = item.find(['source', 'img'], srcset = True)
-            picture_links.append(source['srcset'])
-        if(picture_links.__len__() == 0 or content is None or content is None or content is None or content is None):
-            return None
+        for img_tag in main.find_all('img'):
+            if img_tag.get('src'):
+                picture_links.append(img_tag['src'])
         
+        print(picture_links)
+        time.sleep(100000)
+    
+        if (picture_links.__len__() == 0 or content is None or tags is None or title is None or description is None):
+            return None
+
         return {
             "content": content,
             "title": title,
@@ -69,11 +85,12 @@ def get_info_new(url):
             "picture_links": picture_links
         }
     except:
-      return None
-  
+        return None
 
-    
-func = func_to_string(get_new_links)
-func2 = func_to_string(get_info_new)
+data = get_new_links()
+get_info_new(data[1])
 
-add_func('theguardian', func, func2)
+# func = func_to_string(get_new_links)
+# func2 = func_to_string(get_info_new)
+
+# add_func('theguardian', func, func2)

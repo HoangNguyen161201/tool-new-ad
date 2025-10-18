@@ -337,8 +337,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, 
 
                     print("Đợi qua ngày... ", now.strftime("%H:%M:%S"))
                     time.sleep(5)
-            
-        
+            elif "Lỗi xảy ra, proxy bị lỗi" in message:
+                raise Exception("Lỗi xảy ra, proxy bị lỗi")
             else:
                 print(f"[LỖI KHÁC] {message}")
                 gemini_model_index += 1

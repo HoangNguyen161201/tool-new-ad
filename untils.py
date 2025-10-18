@@ -36,6 +36,7 @@ import numpy as np
 import inspect
 import xml.etree.ElementTree as ET
 from itertools import zip_longest
+import json
 
 def func_to_string(func):
     return inspect.getsource(func)
@@ -1102,6 +1103,7 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
 
         
     browser = uc.Chrome(options=chrome_options)
+    check_proxy(browser, proxy)
     browser.get("https://studio.youtube.com/")
     # await browser load end
     element = WebDriverWait(browser, 100).until(
@@ -1464,8 +1466,7 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     chrome_options.add_argument("--disable-dev-shm-usage")
 
     browser = uc.Chrome(options=chrome_options)
-    browser.get("https://www.browserscan.net/bot-detection")
-    
+    check_proxy(browser, proxy)
     input('nhấn bất kì để đóng chrome:')
     browser.quit()
 
@@ -1494,6 +1495,7 @@ def check_identity_verification(name_chrome_yt, user_Agent, proxy):
 
             
         browser = uc.Chrome(options=chrome_options)
+        check_proxy(browser, proxy)
         browser.get("https://studio.youtube.com/")
         
         # await browser load end
@@ -1545,3 +1547,10 @@ def clear_cache_chrome(yt_path):
         except:
             print(f'Đã xóa folder hoặc không tồn tại folder {item}')
     
+def check_proxy(browser, proxy):
+    browser.get("https://api.myip.com")
+    WebDriverWait(browser, 300).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    body_text = browser.find_element("tag name", "body").text
+    data = json.loads(body_text)
+    if data["ip"] not in proxy:
+        raise Exception("Lỗi xảy ra, proxy bị lỗi")

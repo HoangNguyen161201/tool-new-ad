@@ -25,6 +25,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from webdriver_manager.chrome import ChromeDriverManager
+import undetected_chromedriver as uc
 
 import time
 import pyperclip
@@ -1079,30 +1080,28 @@ def write_lines_to_file(filepath, contents):
         for line in contents:
             f.write(line.rstrip() + "\n")  # đảm bảo mỗi dòng kết thúc bằng \n
 
-def upload_yt( user_data_dir, title, description, tags, video_path, video_thumbnail, comment = None):
+def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path, video_thumbnail, comment = None):
     ### dùng để tạo ra 1 user
     # chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"
     # user_data_dir = "C:/Path/To/Chrome/news-us"
     # subprocess.Popen([chrome_path, f'--remote-debugging-port=9223', f'--user-data-dir={user_data_dir}'])
     # time.sleep(5)
-
-    # Tạo đối tượng ChromeOptions
-    chrome_options = Options()
     
-    # Chỉ định đường dẫn đến thư mục user data
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-    user_data_dir_abspath = os.path.abspath(user_data_dir)
-    chrome_options.add_argument(f"user-data-dir={user_data_dir_abspath}")
-    chrome_options.add_argument("profile-directory=Default")  # Nếu bạn muốn sử dụng profile mặc định
-    # chrome_options.add_argument("--headless")  # Chạy trong chế độ không giao diện
-    # chrome_options.add_argument("--disable-gpu")  # Tắt GPU (thường dùng trong môi trường máy chủ)
+    chrome_options = Options()
+    # cấu hình profile
+    user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_yt)
+    user_data_dir_abspath = os.path.abspath(user_data_dir) 
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
+    chrome_options.add_argument("--profile-directory=Default") 
 
-    # Sử dụng Service để chỉ định ChromeDriver
-    service = Service(ChromeDriverManager().install())
+    chrome_options.add_argument(f"--proxy-server={proxy}")
+    chrome_options.add_argument(f"--user-agent={user_agent}") 
 
-    # Khởi tạo WebDriver với các tùy chọn
-    browser = webdriver.Chrome(service=service, options=chrome_options)
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
+        
+    browser = uc.Chrome(options=chrome_options)
     browser.get("https://studio.youtube.com/")
     # await browser load end
     element = WebDriverWait(browser, 100).until(
@@ -1227,7 +1226,8 @@ def upload_yt( user_data_dir, title, description, tags, video_path, video_thumbn
     time.sleep(2)
 
     while True:
-        element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
+        # element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
+        element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED"]')
         
         if element:
             break  # Thoát vòng lặp nếu tìm thấy
@@ -1438,6 +1438,7 @@ def generate_thumbnail_moviepy_c2(img_path, img_blur_path, img_person_path, bar_
 def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/Chrome/Application/chrome.exe"):
     user_data_dir = os.path.abspath(f"./youtubes/{name_chrome_yt}")
     process = subprocess.Popen([driver_path, f'--remote-debugging-port=9223', f'--user-data-dir={user_data_dir}'])
+   
     input('nhấn bất kì để đóng chrome:')
     process.terminate()  # gửi tín hiệu terminate
     try:
@@ -1445,31 +1446,56 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
     except subprocess.TimeoutExpired:
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
 
-def check_identity_verification(name_chrome_yt):
+def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
+    chrome_options = Options()
+    # cấu hình profile
+    name_folder = name_chrome_yt
+    user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
+    user_data_dir_abspath = os.path.abspath(user_data_dir) 
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
+    chrome_options.add_argument("--profile-directory=Default") 
+
+    # cấu hình proxy
+    chrome_options.add_argument(f"--proxy-server={proxy}")
+
+    chrome_options.add_argument(f"--user-agent={user_agent}") 
+
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    browser = uc.Chrome(options=chrome_options)
+    browser.get("https://www.browserscan.net/bot-detection")
+    
+    input('nhấn bất kì để đóng chrome:')
+    browser.quit()
+
+
+def check_identity_verification(name_chrome_yt, user_Agent, proxy):
     try:
-        video_path = os.path.abspath(f"./public/kokoro.mp4"),
+        video_path = os.path.abspath(f"./public/more/kokoro.mp4"),
         thumb_path = os.path.abspath(f"./public/decorates/decorate1/bg.png"),
-        user_data_dir = os.path.abspath(f"./youtubes/{name_chrome_yt}")
         
-        # Tạo đối tượng ChromeOptions
+        # --- 2. Tạo Options ---
         chrome_options = Options()
-        
-        # Chỉ định đường dẫn đến thư mục user data
-        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-        user_data_dir_abspath = os.path.abspath(user_data_dir)
-        chrome_options.add_argument(f"user-data-dir={user_data_dir_abspath}")
-        chrome_options.add_argument("profile-directory=Default")  # Nếu bạn muốn sử dụng profile mặc định
-        # chrome_options.add_argument("--headless")  # Chạy trong chế độ không giao diện
-        # chrome_options.add_argument("--disable-gpu")  # Tắt GPU (thường dùng trong môi trường máy chủ)
 
-        # Sử dụng Service để chỉ định ChromeDriver
-        service = Service(ChromeDriverManager().install())
+        # cấu hình profile
+        name_folder = name_chrome_yt
+        user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
+        user_data_dir_abspath = os.path.abspath(user_data_dir) 
+        chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
+        chrome_options.add_argument("--profile-directory=Default") 
 
+        # cấu hình proxy
+        chrome_options.add_argument(f"--proxy-server={proxy}")
+        chrome_options.add_argument(f"--user-agent={user_Agent}") 
 
-        # Khởi tạo WebDriver với các tùy chọn
-        browser = webdriver.Chrome(service=service, options=chrome_options)
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
 
+            
+        browser = uc.Chrome(options=chrome_options)
         browser.get("https://studio.youtube.com/")
+        
         # await browser load end
         element = WebDriverWait(browser, 100).until(
             EC.element_to_be_clickable((By.XPATH, '//ytcp-button[@icon="yt-sys-icons:video_call"]'))

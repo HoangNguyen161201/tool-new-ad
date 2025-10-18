@@ -2,14 +2,7 @@ import undetected_chromedriver as uc
 import time
 from selenium.webdriver.chrome.options import Options
 import os
-from fake_useragent import UserAgent
-
-ua = UserAgent()
-while True:
-    ua_random = ua.random
-    if any(x in ua_random for x in ["Windows", "Macintosh", "Linux"]):
-        print(ua_random)
-    time.sleep(1)
+from data import fake_user
 
 # --- 2. Tạo Options ---
 chrome_options = Options()
@@ -25,16 +18,21 @@ chrome_options.add_argument("--profile-directory=Default")
 proxy = "156.230.235.168:8800"
 chrome_options.add_argument(f"--proxy-server={proxy}")
 
-# fake useragent
-ua = UserAgent()
-chrome_options.add_argument(f"--user-agent={ua.random}") 
+chrome_options.add_argument(f"--user-agent={fake_user[2]}") 
 
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
+    
 browser = uc.Chrome(options=chrome_options)
-browser.get("https://youtube.com/")
+browser.get("https://www.browserscan.net/bot-detection")
 
 print(browser.title)
 time.sleep(10000)
 browser.quit()
+
+
+
+
+
+

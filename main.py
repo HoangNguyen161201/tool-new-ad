@@ -3,15 +3,15 @@ import os
 from untils import write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg
 from untils import concat_content_videos_ffmpeg, concat_content_videos_moviepy, get_img_person, generate_image_ffmpeg, generate_image_moviepy, generate_video_by_image_moviepy, generate_content, generate_content_improved
 from untils import upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
-from untils import get_media_duration, clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
-from db_mongodb import get_next_youtube, get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
+from untils import open_chrome_to_edit_detect, get_media_duration, clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
+from db_mongodb import get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
 import random
 from concurrent.futures import ThreadPoolExecutor, wait
 from django.utils.text import slugify
 import time
 import shutil
 from datetime import datetime, timedelta
-
+from data import fake_user, proxies
 
 def create_video_by_image(path_folder, key, link, type_run_video='ffmpeg', person_path=None, avatar_path=None, is_delete=False):
     try:
@@ -74,19 +74,19 @@ def create_video_by_image(path_folder, key, link, type_run_video='ffmpeg', perso
         print(Exception)
 
 
-def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
+def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, youtube_name = None):
     gemini_key_index = 0
     gemini_model_index = 0
     current_link = None
     while True:
-        
         # lấy data
         print('lấy thời gian')
         times = get_times()
         print('lấy thông tin của địa chỉ ip')
         data_by_ip = find_one_ip()
         print('lấy kênh youtube hiện tại để đăng')
-        youtube = get_next_youtube(data_by_ip)
+        youtubes = data_by_ip['youtubes']
+        youtube = next((item for item in youtubes if item["name"].lower() == youtube_name.lower()), None)
         print('lấy model gemini')
         models = get_all_models()
         print('lấy hàm để lấy thông tin link new')
@@ -288,7 +288,9 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             os.rename(f"{path_folder}/result.mp4",
                       f"{path_folder}/{title_slug}.mp4")
             upload_yt(
-                f"./youtubes/{youtube['name']}",
+                youtube['name'],
+                youtube['user_agent'],
+                youtube['proxy'],
                 title,
                 description,
                 tags,
@@ -397,7 +399,24 @@ if __name__ == "__main__":
                         index_ad = None
                         index_decorate = None
                         index_func = None
-
+                        user_agent = None
+                        proxy = None
+                        
+                        while user_agent is None:
+                            random_item = random.choice(fake_user)
+                            if (data.get('youtubes') is not None and any(item.get('user_agent') == text for item in data.get("youtubes", []))):
+                                print('đã tồn tại user agent, random lại')
+                            else:
+                                user_agent = random_item
+                        
+                        while proxy is None:
+                            random_item = random.choice(proxies)
+                            if (data.get('youtubes') is not None and any(item.get('proxy') == text for item in data.get("youtubes", []))):
+                                print('đã tồn tại proxy, random lại')
+                            else:
+                                proxy = random_item
+                                
+                        
                         folder_ad_path = './public/ad_videos'
                         items = os.listdir(folder_ad_path)
                         files = [f for f in items if os.path.isfile(
@@ -439,7 +458,7 @@ if __name__ == "__main__":
                                 index_func = None
 
                         add_youtube_to_ip(
-                            text, f'./public/ad_videos/{files[index_ad]}', f'./public/decorates/{folders[index_decorate]}', funcs[index_func]['name'])
+                            text, f'./public/ad_videos/{files[index_ad]}', f'./public/decorates/{folders[index_decorate]}', funcs[index_func]['name'], user_agent, proxy)
                         open_chrome_to_edit(text, data.get('driverPath'))
                 elif func1.startswith("2-"):
                     text = func1[2:]
@@ -454,13 +473,17 @@ if __name__ == "__main__":
                 elif func1.startswith("3-"):
                     text = func1[2:]
                     if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
-                        open_chrome_to_edit(text, data.get('driverPath'))
+                        youtubes = data.get("youtubes", [])
+                        result = next((item for item in youtubes if item["name"].lower() == text.lower()), None)
+                        open_chrome_to_edit_detect(text, result['user_agent'], result['proxy'])
                     else:
                         print('Chưa tồn tại trình duyệt này')
                 elif func1.startswith("4-"):
                     text = func1[2:]
                     if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
-                        check_identity_verification(text)
+                        youtubes = data.get("youtubes", [])
+                        result = next((item for item in youtubes if item["name"].lower() == text.lower()), None)
+                        check_identity_verification(text,  result['user_agent'], result['proxy'])
                     else:
                         print('Chưa tồn tại trình duyệt này')
 
@@ -613,9 +636,10 @@ if __name__ == "__main__":
             elif (times.__len__() == 0):
                 print('bạn chưa thể chạy vì chưa chỉnh thời gian')
             else:
+                youtube_name = input("Nhập tên youtue để chạy: ")
                 # type: 'ffmpeg' 'moviepy' 'cv2'
                 type = 'ffmpeg'
-                main(type, True)
+                main(type, True, youtube_name)
         elif func == 0:
             is_exit = True
         else:

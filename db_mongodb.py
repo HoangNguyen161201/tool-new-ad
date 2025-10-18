@@ -103,42 +103,7 @@ def check_not_exist_to_create_ip():
 def find_one_ip():
     local_ip = getIp()
     collection = get_collect('news2', 'ips')
-    return collection.find_one({"ip": local_ip})
-
-def get_next_youtube(doc):
-    youtubes = doc.get("youtubes", [])
-    
-    now = datetime.now()
-    today = now.date()
-    
-    current_index = None
-    
-    for i, yt in enumerate(youtubes):
-        if "timeStart" in yt:
-            time_start = datetime.fromisoformat(yt['timeStart'])
-            
-            if time_start.date() == today:
-                return yt
-            else:
-                del yt['timeStart']
-                current_index = i
-                break
-            
-    if current_index is None:
-        next_index = 0
-    else:
-        next_index = (current_index + 1) % len(youtubes)
-    
-    youtubes[next_index]['timeStart']= now.isoformat()
-    doc["youtubes"] = youtubes
-    
-    collection = get_collect('news2', 'ips')
-    collection.update_one({"_id": doc["_id"]}, {"$set": {"youtubes": youtubes}})
-    
-    return youtubes[next_index]
-            
-    
-    
+    return collection.find_one({"ip": local_ip}) 
     
 
 def check_exist_youtube_in_ip(name_chrome_yt):
@@ -159,7 +124,7 @@ def update_driver_path_to_ip(driver_path):
     )
 
 
-def add_youtube_to_ip(name_chrome_yt, ad_path, decorate_path, func):
+def add_youtube_to_ip(name_chrome_yt, ad_path, decorate_path, func, user_agent, proxy):
     local_ip = getIp()
     collection = get_collect('news2', 'ips')
     collection.update_one(
@@ -169,6 +134,8 @@ def add_youtube_to_ip(name_chrome_yt, ad_path, decorate_path, func):
             "ad_path": ad_path,
             "decorate_path": decorate_path,
             "func": func,
+            "user_agent": user_agent,
+            "proxy": proxy
         }}}
     )
 

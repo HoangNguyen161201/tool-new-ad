@@ -155,11 +155,11 @@ def remove_youtube_to_ip(name_chrome_yt):
         {"$pull": {"youtubes": {"name": name_chrome_yt}}}
     )
     
-def update_next_time_youtube(youtube_name):
+def update_next_time_youtube(youtube_name, time_state = None):
     local_ip = getIp()
     collection = get_collect('news2', 'ips')
 
-    new_next_time = datetime.now().isoformat()
+    new_next_time = datetime.now().isoformat() if time_state is None else time_state
 
     # Cập nhật next_time cho phần tử có name = youtube_name
     collection.update_one(

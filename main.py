@@ -322,12 +322,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             message = str(e)
 
             if "Lỗi xảy ra, không tồn tại link hoặc đã hết tin tức" in message:
-                print(f"{message} → Đợi {times[0]['time1']} phút rồi thử lại...")
-                data = 5
-                while data < (60 * times[0]['time1']):
-                    print(f'đợi {times[0]['time1']} phút vì hết link')
-                    time.sleep(5)
-                    data += 5
+                update_next_time_youtube(youtube['name'], (datetime.now() + timedelta(minutes= -(data[0]['time2'] - 10))).isoformat())
+                
             elif "Lỗi xảy ra, không có thông tin của content" in message:
                 print(f"Lỗi xảy ra, không có thông tin của content")
             elif "Lỗi xảy ra, video không đủ độ dài tối thiểu" in message:

@@ -415,14 +415,14 @@ if __name__ == "__main__":
                         
                         while user_agent is None:
                             random_item = random.choice(fake_user)
-                            if (data.get('youtubes') is not None and any(item.get('user_agent') == text for item in data.get("youtubes", []))):
+                            if (data.get('youtubes') is not None and any(item.get('user_agent') == random_item for item in data.get("youtubes", []))):
                                 print('đã tồn tại user agent, random lại')
                             else:
                                 user_agent = random_item
                         
                         while proxy is None:
                             random_item = random.choice(proxies)
-                            if (data.get('youtubes') is not None and any(item.get('proxy') == text for item in data.get("youtubes", []))):
+                            if (data.get('youtubes') is not None and any(item.get('proxy') == random_item for item in data.get("youtubes", []))):
                                 print('đã tồn tại proxy, random lại')
                             else:
                                 proxy = random_item

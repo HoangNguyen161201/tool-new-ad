@@ -154,6 +154,18 @@ def remove_youtube_to_ip(name_chrome_yt):
         {"ip": local_ip},
         {"$pull": {"youtubes": {"name": name_chrome_yt}}}
     )
+    
+def update_next_time_youtube(youtube_name):
+    local_ip = getIp()
+    collection = get_collect('news2', 'ips')
+
+    new_next_time = datetime.now().isoformat()
+
+    # Cập nhật next_time cho phần tử có name = youtube_name
+    collection.update_one(
+        {"ip": local_ip, "youtubes.name": youtube_name},
+        {"$set": {"youtubes.$.next_time": new_next_time}}
+    )
 
 
 def add_gemini_key_to_ip(key):

@@ -4,7 +4,7 @@ from untils import write_lines_to_file, generate_title_description_improved, gen
 from untils import concat_content_videos_ffmpeg, concat_content_videos_moviepy, get_img_person, generate_image_ffmpeg, generate_image_moviepy, generate_video_by_image_moviepy, generate_content, generate_content_improved
 from untils import upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
 from untils import open_chrome_to_edit_detect, get_media_duration, clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
-from db_mongodb import get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
+from db_mongodb import update_next_time_youtube, get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
 import random
 from concurrent.futures import ThreadPoolExecutor, wait
 from django.utils.text import slugify
@@ -73,8 +73,7 @@ def create_video_by_image(path_folder, key, link, type_run_video='ffmpeg', perso
         print('lỗi tạo video image')
         print(Exception)
 
-
-def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, youtube_name = None):
+def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
     gemini_key_index = 0
     gemini_model_index = 0
     current_link = None
@@ -84,17 +83,34 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, 
         times = get_times()
         print('lấy thông tin của địa chỉ ip')
         data_by_ip = find_one_ip()
-        print('lấy kênh youtube hiện tại để đăng')
-        youtubes = data_by_ip['youtubes']
-        youtube = next((item for item in youtubes if item["name"].lower() == youtube_name.lower()), None)
-        print('lấy model gemini')
-        models = get_all_models()
-        print('lấy hàm để lấy thông tin link new')
-        func_get_info_new = get_func(youtube['func'])
-        
-            
             
         try:
+            print('lấy kênh youtube hiện tại để đăng')
+            youtubes = data_by_ip['youtubes']
+            youtube = None
+            now = datetime.now()
+            for item in youtubes:
+                next_time_str = item.get("next_time")
+                if not next_time_str:
+                    youtube = item
+                    break
+                try:
+                    next_time = datetime.fromisoformat(next_time_str)
+                except ValueError:
+                    youtube = item
+                    break
+                if next_time + timedelta(hours=1) < now:
+                    youtube = item
+                    break
+            
+            if youtube is None:
+                 raise Exception("Không có youtube nào khả dụng (tất cả còn trong thời gian chờ).")
+                
+            print('lấy model gemini')
+            models = get_all_models()
+            print('lấy hàm để lấy thông tin link new')
+            func_get_info_new = get_func(youtube['func'])
+        
             #kiểm tra cuối ngày hay chưa
             print('kiểm tra đã cuối ngày chưa')
             now = datetime.now()
@@ -299,6 +315,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, 
             )
             print('thông tin kênh youtube đã đăng:')
             print(youtube)
+            update_next_time_youtube(youtube['name'])
             if data_by_ip['youtubes'].__len__() > 1:
                 now = datetime.now()
                 new_time = now + timedelta(minutes=times[0]['time3'])
@@ -339,6 +356,9 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False, 
                     time.sleep(5)
             elif "Lỗi xảy ra, proxy bị lỗi" in message:
                 raise Exception("Lỗi xảy ra, proxy bị lỗi")
+            elif "Không có youtube nào khả dụng (tất cả còn trong thời gian chờ)." in message:
+                print("Không có youtube nào khả dụng (tất cả còn trong thời gian chờ).")
+                time.sleep(5 * 60)
             else:
                 print(f"[LỖI KHÁC] {message}")
                 gemini_model_index += 1
@@ -636,10 +656,9 @@ if __name__ == "__main__":
             elif (times.__len__() == 0):
                 print('bạn chưa thể chạy vì chưa chỉnh thời gian')
             else:
-                youtube_name = input("Nhập tên youtue để chạy: ")
                 # type: 'ffmpeg' 'moviepy' 'cv2'
                 type = 'ffmpeg'
-                main(type, True, youtube_name)
+                main(type, True)
         elif func == 0:
             is_exit = True
         else:

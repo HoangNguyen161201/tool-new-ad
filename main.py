@@ -99,7 +99,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                 except ValueError:
                     youtube = item
                     break
-                if next_time + timedelta(hours=1) < now:
+                if next_time + timedelta(hours= times[0]['time2'] / 60 ) < now:
                     youtube = item
                     break
             
@@ -316,16 +316,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             print('thông tin kênh youtube đã đăng:')
             print(youtube)
             update_next_time_youtube(youtube['name'])
-            if data_by_ip['youtubes'].__len__() > 1:
-                now = datetime.now()
-                new_time = now + timedelta(minutes=times[0]['time3'])
-                print(f'Thời gian đăng video tiếp theo: {new_time.strftime("%Y-%m-%d %H:%M:%S")}')
-                time.sleep(60 * times[0]['time3'])
-            else:
-                now = datetime.now()
-                new_time = now + timedelta(minutes=times[0]['time2'])
-                print(f'Thời gian đăng video tiếp theo: {new_time.strftime("%Y-%m-%d %H:%M:%S")}')
-                time.sleep(60 * times[0]['time2'])
+            time.sleep(60)
             print('Tiếp tục...')
         except Exception as e:
             message = str(e)

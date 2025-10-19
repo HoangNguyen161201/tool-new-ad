@@ -391,7 +391,8 @@ if __name__ == "__main__":
                 print('|-1. Thêm youtube mới (nhập 1-name)      -------|')
                 print('|-2. Xóa youtube (nhập 2-name)           -------|')
                 print('|-3. Mở để chỉnh sửa (nhập 3-name)       -------|')
-                print('|-4. Check xác minh danh tính (nhập 4-name)  ---|')
+                print('|-4. Mở để chỉnh sửa không proxy (nhập 4-name) -|')
+                print('|-5. Check xác minh danh tính (nhập 5-name)  ---|')
                 print('|- Lưu ý: name chrome ghi liền mạch không cách -|')
                 func1 = input("Nhập chọn chức năng: ")
 
@@ -487,6 +488,12 @@ if __name__ == "__main__":
                     else:
                         print('Chưa tồn tại trình duyệt này')
                 elif func1.startswith("4-"):
+                    text = func1[2:]
+                    if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
+                        open_chrome_to_edit(text, data.get('driverPath'))
+                    else:
+                        print('Chưa tồn tại trình duyệt này')
+                elif func1.startswith("5-"):
                     text = func1[2:]
                     if (data.get('youtubes') is not None and any(item.get('name') == text for item in data.get("youtubes", []))):
                         youtubes = data.get("youtubes", [])

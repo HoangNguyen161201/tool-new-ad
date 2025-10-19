@@ -1458,7 +1458,7 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     chrome_options.add_argument("--profile-directory=Default") 
 
     # cấu hình proxy
-    chrome_options.add_argument(f"--proxy-server={'156.241.255.216:8800'}")
+    chrome_options.add_argument(f"--proxy-server={proxy}")
 
     chrome_options.add_argument(f"--user-agent={user_agent}") 
 

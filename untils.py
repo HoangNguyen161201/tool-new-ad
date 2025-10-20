@@ -1105,6 +1105,14 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
     browser = uc.Chrome(options=chrome_options)
     check_proxy(browser, proxy)
     browser.get("https://studio.youtube.com/")
+    
+    WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
+    if browser.current_url == 'https://studio.youtube.com/':
+        element = WebDriverWait(browser, 100).until(
+            EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))
+        )
+        element.click()
+
     # await browser load end
     element = WebDriverWait(browser, 100).until(
         EC.element_to_be_clickable((By.XPATH, '//ytcp-button[@icon="yt-sys-icons:video_call"]'))
@@ -1508,6 +1516,13 @@ def check_identity_verification(name_chrome_yt, user_Agent, proxy):
         browser = uc.Chrome(options=chrome_options)
         check_proxy(browser, proxy)
         browser.get("https://studio.youtube.com/")
+        
+        WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
+        if browser.current_url == 'https://studio.youtube.com/':
+            element = WebDriverWait(browser, 100).until(
+                EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))
+            )
+            element.click()
         
         # await browser load end
         element = WebDriverWait(browser, 100).until(

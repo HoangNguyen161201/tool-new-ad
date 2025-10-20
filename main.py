@@ -324,7 +324,7 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
             if "Lỗi xảy ra, không tồn tại link hoặc đã hết tin tức" in message:
                 print('hết link, qua kênh khác')
                 update_next_time_youtube(youtube['name'], (datetime.now() + timedelta(minutes= -(times[0]['time2'] - 10))).isoformat())
-            elif 'lỗi upload youtube':
+            elif 'lỗi upload youtube' in message:
                 print('lỗi upload youtube') 
             elif "Lỗi xảy ra, không có thông tin của content" in message:
                 print(f"Lỗi xảy ra, không có thông tin của content")

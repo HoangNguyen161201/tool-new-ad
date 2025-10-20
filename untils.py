@@ -1227,16 +1227,27 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
     browser.find_element(By.ID, 'next-button').click()
     time.sleep(2)
 
+    timeout = 20 * 60
+    start_time = time.time()
+    is_not_find_status = False
     while True:
         # element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
         element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED"]')
         
         if element:
             break  # Thoát vòng lặp nếu tìm thấy
-
+        
+        elapsed = time.time() - start_time
+        if elapsed > timeout:
+            is_not_find_status = True
+            break
         print("Chưa tìm thấy, tiếp tục kiểm tra...")
         time.sleep(2)  # Đợi 2 giây trước khi kiểm tra lại
 
+    if is_not_find_status is True:
+        browser.quit()
+        raise Exception("lỗi upload youtube")
+    
     browser.find_element(By.ID, 'next-button').click()
     time.sleep(2)
 

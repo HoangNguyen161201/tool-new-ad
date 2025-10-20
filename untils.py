@@ -1107,6 +1107,7 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
     browser.get("https://studio.youtube.com/")
     
     WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
+    print(f'url hiện tại: {browser.current_url}')
     if browser.current_url == 'https://studio.youtube.com/':
         element = WebDriverWait(browser, 100).until(
             EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))

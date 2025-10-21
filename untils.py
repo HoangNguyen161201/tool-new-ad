@@ -1468,6 +1468,19 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
     except subprocess.TimeoutExpired:
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
 
+def clear_chrome_lock(profile_path):
+    lock_files = [
+        "SingletonLock", "SingletonCookie", "SingletonSocket", "SingletonSharedMemory",
+    ]
+    for lf in lock_files:
+        f = os.path.join(profile_path, lf)
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+                print(f"Đã xoá {lf}")
+            except Exception as e:
+                print(f"Không thể xoá {lf}: {e}")
+                
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     chrome_options = Options()
     # cấu hình profile
@@ -1475,6 +1488,9 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
     user_data_dir_abspath = os.path.abspath(user_data_dir) 
     chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
+    
+    clear_chrome_lock(os.path.join(user_data_dir_abspath, "Default"))
+    
     chrome_options.add_argument("--profile-directory=Default") 
 
     # cấu hình proxy

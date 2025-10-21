@@ -1469,17 +1469,23 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
 
 def clear_chrome_lock(profile_path):
-    lock_files = [
-        "SingletonLock", "SingletonCookie", "SingletonSocket", "SingletonSharedMemory",
+    # Các file hay gây lỗi khi Chrome update hoặc crash
+    corrupted = [
+        "SingletonLock",
+        "SingletonCookie",
+        "SingletonSocket",
+        "SingletonSharedMemory",
+        "Default/Preferences",
+        "Default/Secure Preferences",
     ]
-    for lf in lock_files:
-        f = os.path.join(profile_path, lf)
-        if os.path.exists(f):
+    for f in corrupted:
+        full = os.path.join(profile_path, f)
+        if os.path.exists(full):
             try:
-                os.remove(f)
-                print(f"Đã xoá {lf}")
+                os.remove(full)
+                print(f"Đã xoá file lỗi: {f}")
             except Exception as e:
-                print(f"Không thể xoá {lf}: {e}")
+                print(f"Lỗi khi xoá {f}: {e}")
                 
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     chrome_options = Options()

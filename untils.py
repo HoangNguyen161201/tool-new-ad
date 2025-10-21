@@ -1565,14 +1565,36 @@ def check_identity_verification(name_chrome_yt, user_Agent, proxy):
     browser.quit()
 
 
-def clear_cache_chrome(yt_path):
-    paths = ['/Default/Cache', '/Default/GPUCache', '/ShaderCache', '/Default/Code Cache', '/GrShaderCache']
-    for item in paths:
-        try:
-            shutil.rmtree(f'{yt_path}{item}')
-            print(f'đã xóa cache {item}')
-        except:
-            print(f'Đã xóa folder hoặc không tồn tại folder {item}')
+def clear_cache_chrome(profile_path: str):
+    """
+    Xóa cache trong profile Chrome (không ảnh hưởng đến tài khoản đăng nhập).
+    """
+    # Danh sách thư mục cần xóa
+    folders = [
+        "Default/Cache",
+        "Default/GPUCache",
+        "Default/Code Cache",
+        "ShaderCache",
+        "GrShaderCache",
+        "Default/Service Worker",
+        "Default/Storage",
+        "Default/Media Cache",
+        "Default/Session Storage"
+    ]
+
+    profile_path = os.path.expanduser(profile_path)  # hỗ trợ ~/
+    for folder in folders:
+        full_path = os.path.join(profile_path, folder)
+        if os.path.exists(full_path):
+            try:
+                shutil.rmtree(full_path)
+                print(f"🧹 Đã xóa: {full_path}")
+            except Exception as e:
+                print(f"⚠️ Lỗi khi xóa {full_path}: {e}")
+        else:
+            print(f"⛔ Không tồn tại: {full_path}")
+    print("✅ Dọn cache Chrome hoàn tất!")
+
     
 def check_proxy(browser, proxy):
     browser.get("https://api.myip.com")

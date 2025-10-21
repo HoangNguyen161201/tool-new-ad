@@ -1484,6 +1484,8 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--no-zygote")
 
     browser = uc.Chrome(options=chrome_options)
     check_proxy(browser, proxy)

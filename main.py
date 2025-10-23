@@ -2,7 +2,7 @@ import shutil
 import os
 from untils import write_lines_to_file, generate_title_description_improved, generate_video_by_image_ffmpeg
 from untils import concat_content_videos_ffmpeg, concat_content_videos_moviepy, get_img_person, generate_image_ffmpeg, generate_image_moviepy, generate_video_by_image_moviepy, generate_content, generate_content_improved
-from untils import upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
+from untils import generate_to_voice_gtts, upload_yt, generate_to_voice_edge, generate_thumbnail, generate_thumbnail_moviepy_c2
 from untils import open_chrome_to_edit_detect, get_media_duration, clear_cache_chrome, check_identity_verification, generate_image_cv2, generate_video_by_image_cv2, open_chrome_to_edit
 from db_mongodb import update_next_time_youtube, get_func, get_funcs, get_all_models, insert_model, delete_model, update_time, insert_time, get_times, get_func_to_get_info_new, check_link_exists, insert_link, check_not_exist_to_create_ip, find_one_ip, add_gemini_key_to_ip, remove_gemini_key_youtube_to_ip, update_driver_path_to_ip, add_youtube_to_ip, remove_youtube_to_ip
 import random
@@ -244,9 +244,13 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                 )
 
                 future2 = executor.submit(
-                    generate_to_voice_edge,
-                    new_info['content'],
-                    f"{path_folder}/content-voice.aac",
+                    generate_to_voice_gtts,
+                    text=new_info['content'],
+                    bgm_path="./public/more/bg.mp3",
+                    output_path=f"{path_folder}/content-voice.aac",
+                    speed=1.2,
+                    volume_voice=3.0,
+                    volume_bgm=0.25
                 )
 
                 future3 = executor.submit(

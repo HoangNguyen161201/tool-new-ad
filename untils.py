@@ -1104,214 +1104,221 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
         
     browser = uc.Chrome(options=chrome_options)
     check_proxy(browser, proxy)
-    browser.get("https://studio.youtube.com/")
-    
-    WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
-    print(f'url hiện tại: {browser.current_url}')
-    if browser.current_url == 'https://studio.youtube.com/':
+    try:
+        browser.get("https://studio.youtube.com/")
+        
+        WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
+        print(f'url hiện tại: {browser.current_url}')
+        if browser.current_url == 'https://studio.youtube.com/':
+            element = WebDriverWait(browser, 100).until(
+                EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))
+            )
+            element.click()
+
+        # await browser load end
         element = WebDriverWait(browser, 100).until(
-            EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))
+            EC.element_to_be_clickable((By.XPATH, '//ytcp-button[@icon="yt-sys-icons:video_call"]'))
         )
         element.click()
-
-    # await browser load end
-    element = WebDriverWait(browser, 100).until(
-        EC.element_to_be_clickable((By.XPATH, '//ytcp-button[@icon="yt-sys-icons:video_call"]'))
-    )
-    element.click()
-    time.sleep(1)
-
-
-    WebDriverWait(browser, 100).until(
-        EC.element_to_be_clickable((By.ID, 'text-item-0'))
-    )
-
-    browser.find_element(By.ID, 'text-item-0').click()
-    time.sleep(10)
-    
-    # upload video
-    print('upload video in youtube')
-    WebDriverWait(browser, 100).until(
-        lambda d: len(d.find_elements(By.TAG_NAME, 'input')) > 1  # Đảm bảo có ít nhất 2 input
-    )
-    
-    file_input = browser.find_elements(By.TAG_NAME, 'input')[1]
-    file_input.send_keys(video_path)
-    time.sleep(3)
-
-
-    # upload thumbnail
-    print('upload thumbnail in youtube')
-    WebDriverWait(browser, 100).until(
-        EC.presence_of_all_elements_located((By.ID, 'file-loader'))
-    )
-    thumbnail_input = browser.find_element(By.ID, 'file-loader')
-    thumbnail_input.send_keys(video_thumbnail)
-    time.sleep(3)
-
-
-    # enter title
-    print('nhập title in youtube')
-    WebDriverWait(browser, 100).until(
-        EC.presence_of_all_elements_located((By.ID, 'textbox'))
-    )
-    
-    title_input = browser.find_element(By.ID, 'textbox')
-    
-    
-    check_clean_title = False
-    while check_clean_title is False:
-        # Xoá bằng Ctrl+A + Delete
-        title_input.send_keys(Keys.CONTROL, "a")
-        title_input.send_keys(Keys.DELETE)
-        title_input.clear()
         time.sleep(1)
-        if title_input.text.strip() == "":
-            check_clean_title = True
-            
-    time.sleep(1)
-    title_input.send_keys(title)
-    time.sleep(1)
-
-    # enter description
-    print('nhập description in youtube')
-    des_input = browser.find_elements(By.ID, 'textbox')[1]
-    des_input.clear()
-    time.sleep(1)
-    # Copy vào clipboard
-    pyperclip.copy(description)
-    des_input.click()
-    time.sleep(1)
-    des_input.send_keys(Keys.CONTROL, 'v')
-    time.sleep(1)
-
-    # enter hiển thị thêm
-    # Đợi cho phần tử scrollable-content xuất hiện
-    scrollable_element = WebDriverWait(browser, 100).until(
-        EC.presence_of_element_located((By.ID, "scrollable-content"))
-    )
-    # Scroll xuống cuối cùng của phần tử scrollable-content
-    browser.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight);", scrollable_element)
-    time.sleep(2)
-
-    WebDriverWait(browser, 100).until(
-        EC.presence_of_all_elements_located((By.ID, 'toggle-button'))
-    )
-    show_more_btn = browser.find_element(By.ID, 'toggle-button')
-    show_more_btn.click()
-    time.sleep(2)
-    
-
-    # enter tags
-    print('nhập tags in youtube')
-    WebDriverWait(browser, 100).until(
-        EC.presence_of_all_elements_located((By.ID, 'text-input'))
-    )
-    tags_input = browser.find_element(By.ID, 'text-input')
-    tags_input.send_keys(tags)
-    time.sleep(2)
-
-    # next btn
-    browser.find_element(By.ID, 'next-button').click()
-    time.sleep(10)
-
-    # # add end screens
-    # WebDriverWait(browser, 10).until(
-    #     EC.presence_of_all_elements_located((By.ID, 'endscreens-button'))
-    # )
-    # browser.find_element(By.ID, 'endscreens-button').click()
-    # time.sleep(2)
-    # canvas_element = WebDriverWait(browser, 10).until(
-    #     EC.element_to_be_clickable((By.TAG_NAME, "canvas"))
-    # )
-    # browser.execute_script("arguments[0].click();", canvas_element)
-    # time.sleep(2)
-    # browser.find_element(By.ID, 'save-button').click()
-    # time.sleep(4)
-
-    # next
-    WebDriverWait(browser, 100).until(
-        EC.element_to_be_clickable((By.ID, 'next-button'))
-    )
-    browser.find_element(By.ID, 'next-button').click()
-    time.sleep(2)
-
-    timeout = 20 * 60
-    start_time = time.time()
-    is_not_find_status = False
-    while True:
-        # element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
-        element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED"]')
-        
-        if element:
-            break  # Thoát vòng lặp nếu tìm thấy
-        
-        elapsed = time.time() - start_time
-        if elapsed > timeout:
-            is_not_find_status = True
-            break
-        print("Chưa tìm thấy, tiếp tục kiểm tra...")
-        time.sleep(2)  # Đợi 2 giây trước khi kiểm tra lại
-
-    if is_not_find_status is True:
-        browser.quit()
-        raise Exception("lỗi upload youtube")
-    
-    browser.find_element(By.ID, 'next-button').click()
-    time.sleep(2)
 
 
-    # done
-    print('upload video in youtube thành công')
-    WebDriverWait(browser, 100).until(
-        EC.element_to_be_clickable((By.ID, 'done-button'))
-    )
-    browser.find_element(By.ID, 'done-button').click()
-
-    # vào youtube để nhập bình luận
-    if comment is not None:
         WebDriverWait(browser, 100).until(
-            EC.presence_of_all_elements_located((By.ID, 'share-url'))
+            EC.element_to_be_clickable((By.ID, 'text-item-0'))
         )
-        link_redirect = browser.find_element(By.ID, 'share-url')
-        href = link_redirect.get_attribute('href')
-        browser.get(href)
-        WebDriverWait(browser, 100).until(
-            EC.presence_of_all_elements_located((By.ID, 'above-the-fold'))
-        )
-        time.sleep(5)
-        is_Find_comment = False
-        while  is_Find_comment is False:
-            try:
-                browser.execute_script("window.scrollBy(0, 50);")
-                time.sleep(1)
-                comment_box = browser.find_element(By.ID, 'simplebox-placeholder')
-                if(comment_box):
-                    is_Find_comment = True
-                time.sleep(3)
-            except:
-                time.sleep(3)
 
-        comment_box = browser.find_element(By.ID, 'simplebox-placeholder')
-        comment_box.click()
-        textarea = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div#contenteditable-root[contenteditable='true']"))
+        browser.find_element(By.ID, 'text-item-0').click()
+        time.sleep(10)
+        
+        # upload video
+        print('upload video in youtube')
+        WebDriverWait(browser, 100).until(
+            lambda d: len(d.find_elements(By.TAG_NAME, 'input')) > 1  # Đảm bảo có ít nhất 2 input
         )
-        pyperclip.copy(comment)
-        textarea.click()
+        
+        file_input = browser.find_elements(By.TAG_NAME, 'input')[1]
+        file_input.send_keys(video_path)
+        time.sleep(3)
+
+
+        # upload thumbnail
+        print('upload thumbnail in youtube')
+        WebDriverWait(browser, 100).until(
+            EC.presence_of_all_elements_located((By.ID, 'file-loader'))
+        )
+        thumbnail_input = browser.find_element(By.ID, 'file-loader')
+        thumbnail_input.send_keys(video_thumbnail)
+        time.sleep(3)
+
+
+        # enter title
+        print('nhập title in youtube')
+        WebDriverWait(browser, 100).until(
+            EC.presence_of_all_elements_located((By.ID, 'textbox'))
+        )
+        
+        title_input = browser.find_element(By.ID, 'textbox')
+        
+        
+        check_clean_title = False
+        while check_clean_title is False:
+            # Xoá bằng Ctrl+A + Delete
+            title_input.send_keys(Keys.CONTROL, "a")
+            title_input.send_keys(Keys.DELETE)
+            title_input.clear()
+            time.sleep(1)
+            if title_input.text.strip() == "":
+                check_clean_title = True
+                
         time.sleep(1)
-        textarea.send_keys(Keys.CONTROL, 'v')
+        title_input.send_keys(title)
+        time.sleep(1)
+
+        # enter description
+        print('nhập description in youtube')
+        des_input = browser.find_elements(By.ID, 'textbox')[1]
+        des_input.clear()
+        time.sleep(1)
+        # Copy vào clipboard
+        pyperclip.copy(description)
+        des_input.click()
+        time.sleep(1)
+        des_input.send_keys(Keys.CONTROL, 'v')
+        time.sleep(1)
+
+        # enter hiển thị thêm
+        # Đợi cho phần tử scrollable-content xuất hiện
+        scrollable_element = WebDriverWait(browser, 100).until(
+            EC.presence_of_element_located((By.ID, "scrollable-content"))
+        )
+        # Scroll xuống cuối cùng của phần tử scrollable-content
+        browser.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight);", scrollable_element)
         time.sleep(2)
-        submit_button = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.ID, "submit-button"))
-        )
-        submit_button.click()
 
-    time.sleep(10)
-    WebDriverWait(browser, 100).until(
-            EC.presence_of_all_elements_located((By.ID, 'share-url'))
+        WebDriverWait(browser, 100).until(
+            EC.presence_of_all_elements_located((By.ID, 'toggle-button'))
         )
-    browser.quit()
+        show_more_btn = browser.find_element(By.ID, 'toggle-button')
+        show_more_btn.click()
+        time.sleep(2)
+        
+
+        # enter tags
+        print('nhập tags in youtube')
+        WebDriverWait(browser, 100).until(
+            EC.presence_of_all_elements_located((By.ID, 'text-input'))
+        )
+        tags_input = browser.find_element(By.ID, 'text-input')
+        tags_input.send_keys(tags)
+        time.sleep(2)
+
+        # next btn
+        browser.find_element(By.ID, 'next-button').click()
+        time.sleep(10)
+
+        # # add end screens
+        # WebDriverWait(browser, 10).until(
+        #     EC.presence_of_all_elements_located((By.ID, 'endscreens-button'))
+        # )
+        # browser.find_element(By.ID, 'endscreens-button').click()
+        # time.sleep(2)
+        # canvas_element = WebDriverWait(browser, 10).until(
+        #     EC.element_to_be_clickable((By.TAG_NAME, "canvas"))
+        # )
+        # browser.execute_script("arguments[0].click();", canvas_element)
+        # time.sleep(2)
+        # browser.find_element(By.ID, 'save-button').click()
+        # time.sleep(4)
+
+        # next
+        WebDriverWait(browser, 100).until(
+            EC.element_to_be_clickable((By.ID, 'next-button'))
+        )
+        browser.find_element(By.ID, 'next-button').click()
+        time.sleep(2)
+
+        timeout = 20 * 60
+        start_time = time.time()
+        is_not_find_status = False
+        while True:
+            # element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED" or @check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_STARTED"]')
+            element = browser.find_elements(By.XPATH, '//*[@check-status="UPLOAD_CHECKS_DATA_COPYRIGHT_STATUS_COMPLETED" or @checks-summary-status-v2="UPLOAD_CHECKS_DATA_SUMMARY_STATUS_STARTED"]')
+            
+            if element:
+                break  # Thoát vòng lặp nếu tìm thấy
+            
+            elapsed = time.time() - start_time
+            if elapsed > timeout:
+                is_not_find_status = True
+                break
+            print("Chưa tìm thấy, tiếp tục kiểm tra...")
+            time.sleep(2)  # Đợi 2 giây trước khi kiểm tra lại
+
+        if is_not_find_status is True:
+            browser.quit()
+            raise Exception("lỗi upload youtube")
+        
+        browser.find_element(By.ID, 'next-button').click()
+        time.sleep(2)
+
+
+        # done
+        print('upload video in youtube thành công')
+        WebDriverWait(browser, 100).until(
+            EC.element_to_be_clickable((By.ID, 'done-button'))
+        )
+        browser.find_element(By.ID, 'done-button').click()
+
+        # vào youtube để nhập bình luận
+        if comment is not None:
+            WebDriverWait(browser, 100).until(
+                EC.presence_of_all_elements_located((By.ID, 'share-url'))
+            )
+            link_redirect = browser.find_element(By.ID, 'share-url')
+            href = link_redirect.get_attribute('href')
+            browser.get(href)
+            WebDriverWait(browser, 100).until(
+                EC.presence_of_all_elements_located((By.ID, 'above-the-fold'))
+            )
+            time.sleep(5)
+            is_Find_comment = False
+            while  is_Find_comment is False:
+                try:
+                    browser.execute_script("window.scrollBy(0, 50);")
+                    time.sleep(1)
+                    comment_box = browser.find_element(By.ID, 'simplebox-placeholder')
+                    if(comment_box):
+                        is_Find_comment = True
+                    time.sleep(3)
+                except:
+                    time.sleep(3)
+
+            comment_box = browser.find_element(By.ID, 'simplebox-placeholder')
+            comment_box.click()
+            textarea = WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div#contenteditable-root[contenteditable='true']"))
+            )
+            pyperclip.copy(comment)
+            textarea.click()
+            time.sleep(1)
+            textarea.send_keys(Keys.CONTROL, 'v')
+            time.sleep(2)
+            submit_button = WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located((By.ID, "submit-button"))
+            )
+            submit_button.click()
+
+        time.sleep(10)
+        WebDriverWait(browser, 100).until(
+                EC.presence_of_all_elements_located((By.ID, 'share-url'))
+            )
+        browser.quit()
+    except Exception as e:
+        message = str(e)
+        browser.quit()
+        if "lỗi upload youtube" in message:
+            raise Exception("lỗi upload youtube")
+        
 
 
 def download_file_from_vps(host, username, password, remote_path, local_path, port = 22):
@@ -1468,25 +1475,7 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
     except subprocess.TimeoutExpired:
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
 
-def clear_chrome_lock(profile_path):
-    # Các file hay gây lỗi khi Chrome update hoặc crash
-    corrupted = [
-        "SingletonLock",
-        "SingletonCookie",
-        "SingletonSocket",
-        "SingletonSharedMemory",
-        "Default/Preferences",
-        "Default/Secure Preferences",
-    ]
-    for f in corrupted:
-        full = os.path.join(profile_path, f)
-        if os.path.exists(full):
-            try:
-                os.remove(full)
-                print(f"Đã xoá file lỗi: {f}")
-            except Exception as e:
-                print(f"Lỗi khi xoá {f}: {e}")
-                
+             
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     chrome_options = Options()
     # cấu hình profile
@@ -1494,9 +1483,6 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
     user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
     user_data_dir_abspath = os.path.abspath(user_data_dir) 
     chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
-    
-    clear_chrome_lock(os.path.join(user_data_dir_abspath, "Default"))
-    
     chrome_options.add_argument("--profile-directory=Default") 
 
     # cấu hình proxy
@@ -1600,8 +1586,6 @@ def clear_cache_chrome(profile_path: str):
         "Default/Code Cache",
         "ShaderCache",
         "GrShaderCache",
-        "Default/Service Worker",
-        "Default/Storage",
         "Default/Media Cache",
         "Default/Session Storage"
     ]

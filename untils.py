@@ -1478,6 +1478,10 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
 
              
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
+    
+    subprocess.run("pkill chrome || true", shell=True)
+    subprocess.run("pkill chromedriver || true", shell=True)
+
     chrome_options = Options()
 
     # 🧩 Cấu hình profile (đường dẫn tuyệt đối, không lỗi khóa)

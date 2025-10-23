@@ -1477,30 +1477,47 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
 
              
-def open_chrome_to_edit_detect(name_chrome_yt, user_agent = None, proxy = None):
+def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
     chrome_options = Options()
-    # cấu hình profile
+
+    # 🧩 Cấu hình profile (đường dẫn tuyệt đối, không lỗi khóa)
     name_folder = name_chrome_yt
     user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
-    user_data_dir_abspath = os.path.abspath(user_data_dir) 
+    user_data_dir_abspath = os.path.abspath(user_data_dir)
     chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
-    chrome_options.add_argument("--profile-directory=Default") 
+    chrome_options.add_argument("--profile-directory=Default")
 
-    # cấu hình proxy
-    chrome_options.add_argument(f"--proxy-server={proxy}")
+    # 🧩 Proxy (nếu có)
+    if proxy:
+        chrome_options.add_argument(f"--proxy-server={proxy}")
 
-    chrome_options.add_argument(f"--user-agent={user_agent}") 
+    # 🧩 User-Agent (nếu có)
+    if user_agent:
+        chrome_options.add_argument(f"--user-agent={user_agent}")
 
+    # ⚙️ Các flag ổn định (tránh crash, tối ưu cho VPS)
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--no-zygote")
+    chrome_options.add_argument("--single-process")
 
-    browser = uc.Chrome(options=chrome_options)
-    check_proxy(browser, proxy)
-    input('nhấn bất kì để đóng chrome:')
-    browser.quit()
+    # ⚙️ Bổ sung — tránh lỗi "Chrome not reachable" trên VPS hoặc khi nhiều Chrome chạy cùng
+    chrome_options.add_argument("--remote-debugging-port=0")
 
+    # 🧠 Headless (nếu bạn đang chạy trong VPS không GUI)
+    # chrome_options.add_argument("--headless=new")
+
+    # 🚀 Khởi tạo Chrome với version_main khớp (141)
+    driver = uc.Chrome(options=chrome_options, version_main=141)
+
+    # 🧩 Kiểm tra proxy hoặc tác vụ bạn muốn
+    check_proxy(driver, proxy)
+
+    input("Nhấn Enter để đóng Chrome...")
+    driver.quit()
 
 def check_identity_verification(name_chrome_yt, user_Agent, proxy):
     try:

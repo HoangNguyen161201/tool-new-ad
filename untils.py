@@ -1478,9 +1478,6 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
 
              
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
-    
-    subprocess.run("pkill chrome || true", shell=True)
-    subprocess.run("pkill chromedriver || true", shell=True)
 
     chrome_options = Options()
 
@@ -1488,7 +1485,20 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
     name_folder = name_chrome_yt
     user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
     user_data_dir_abspath = os.path.abspath(user_data_dir)
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
+    temp_profile_path = os.path.join(os.getcwd(), 'youtubes', f"temp_{name_folder}")
+    
+    # ⚙️ Xóa nếu đã tồn tại (tránh lỗi copy)
+    if os.path.exists(temp_profile_path):
+        shutil.rmtree(temp_profile_path)
+
+    # ⚙️ Copy profile gốc sang profile tạm
+    shutil.copytree(user_data_dir_abspath, temp_profile_path)
+    for f in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
+        path_f = os.path.join(temp_profile_path, "Default", f)
+        if os.path.exists(path_f):
+            os.remove(path_f)
+        
+    chrome_options.add_argument(f"--user-data-dir={temp_profile_path}")
     chrome_options.add_argument("--profile-directory=Default")
 
     # 🧩 Proxy (nếu có)
@@ -1505,12 +1515,8 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--no-zygote")
-    chrome_options.add_argument("--single-process")
 
-    # ⚙️ Bổ sung — tránh lỗi "Chrome not reachable" trên VPS hoặc khi nhiều Chrome chạy cùng
-    chrome_options.add_argument("--remote-debugging-port=0")
-
+  
     # 🧠 Headless (nếu bạn đang chạy trong VPS không GUI)
     # chrome_options.add_argument("--headless=new")
 
@@ -1519,6 +1525,8 @@ def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
 
     # 🧩 Kiểm tra proxy hoặc tác vụ bạn muốn
     check_proxy(driver, proxy)
+    
+    driver.get('https://youtube.com')
 
     input("Nhấn Enter để đóng Chrome...")
     driver.quit()

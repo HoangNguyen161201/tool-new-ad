@@ -1089,23 +1089,10 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
     # subprocess.Popen([chrome_path, f'--remote-debugging-port=9223', f'--user-data-dir={user_data_dir}'])
     # time.sleep(5)
     
-    chrome_options = Options()
-    # cấu hình profile
-    user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_yt)
-    user_data_dir_abspath = os.path.abspath(user_data_dir) 
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
-    chrome_options.add_argument("--profile-directory=Default") 
-
-    chrome_options.add_argument(f"--proxy-server={proxy}")
-    chrome_options.add_argument(f"--user-agent={user_agent}") 
-
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-        
-    browser = uc.Chrome(options=chrome_options)
-    check_proxy(browser, proxy)
+    driver = get_copy_profile_driver(name_yt, user_agent, proxy)
+    browser = driver['driver']
     try:
+        check_proxy(browser, proxy)
         browser.get("https://studio.youtube.com/")
         
         WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
@@ -1319,6 +1306,8 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
         browser.quit()
         if "lỗi upload youtube" in message:
             raise Exception("lỗi upload youtube")
+    
+    clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
         
 
 
@@ -1478,131 +1467,73 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
 
              
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
-
-    chrome_options = Options()
-
-    # 🧩 Cấu hình profile (đường dẫn tuyệt đối, không lỗi khóa)
-    name_folder = name_chrome_yt
-    user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
-    user_data_dir_abspath = os.path.abspath(user_data_dir)
-    temp_profile_path = os.path.join(os.getcwd(), 'youtubes', f"temp_{name_folder}")
+    driver = get_copy_profile_driver(name_chrome_yt, user_agent, proxy)
     
-    # ⚙️ Xóa nếu đã tồn tại (tránh lỗi copy)
-    if os.path.exists(temp_profile_path):
-        shutil.rmtree(temp_profile_path)
-
-    # ⚙️ Copy profile gốc sang profile tạm
-    shutil.copytree(user_data_dir_abspath, temp_profile_path)
-    for f in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
-        path_f = os.path.join(temp_profile_path, "Default", f)
-        if os.path.exists(path_f):
-            os.remove(path_f)
-        
-    chrome_options.add_argument(f"--user-data-dir={temp_profile_path}")
-    chrome_options.add_argument("--profile-directory=Default")
-
-    # 🧩 Proxy (nếu có)
-    if proxy:
-        chrome_options.add_argument(f"--proxy-server={proxy}")
-
-    # 🧩 User-Agent (nếu có)
-    if user_agent:
-        chrome_options.add_argument(f"--user-agent={user_agent}")
-
-    # ⚙️ Các flag ổn định (tránh crash, tối ưu cho VPS)
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-
-  
-    # 🧠 Headless (nếu bạn đang chạy trong VPS không GUI)
-    # chrome_options.add_argument("--headless=new")
-
-    # 🚀 Khởi tạo Chrome với version_main khớp (141)
-    driver = uc.Chrome(options=chrome_options, version_main=141)
-
     # 🧩 Kiểm tra proxy hoặc tác vụ bạn muốn
-    check_proxy(driver, proxy)
-    
-    driver.get('https://youtube.com')
-
+    check_proxy(driver['driver'], proxy)
     input("Nhấn Enter để đóng Chrome...")
-    driver.quit()
+    driver['driver'].quit()
+    
+    clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
+   
 
-def check_identity_verification(name_chrome_yt, user_Agent, proxy):
+def check_identity_verification(name_chrome_yt, user_agent, proxy):
+    driver = get_copy_profile_driver(name_chrome_yt, user_agent, proxy)
+    
+    video_path = os.path.abspath(f"./public/more/kokoro.mp4"),
+    thumb_path = os.path.abspath(f"./public/decorates/decorate1/bg.png"),
+    
     try:
-        video_path = os.path.abspath(f"./public/more/kokoro.mp4"),
-        thumb_path = os.path.abspath(f"./public/decorates/decorate1/bg.png"),
+        check_proxy(driver['driver'], proxy)
+        driver['driver'].get("https://studio.youtube.com/")
         
-        # --- 2. Tạo Options ---
-        chrome_options = Options()
-
-        # cấu hình profile
-        name_folder = name_chrome_yt
-        user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
-        user_data_dir_abspath = os.path.abspath(user_data_dir) 
-        chrome_options.add_argument(f"--user-data-dir={user_data_dir_abspath}")
-        chrome_options.add_argument("--profile-directory=Default") 
-
-        # cấu hình proxy
-        chrome_options.add_argument(f"--proxy-server={proxy}")
-        chrome_options.add_argument(f"--user-agent={user_Agent}") 
-
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-
-            
-        browser = uc.Chrome(options=chrome_options)
-        check_proxy(browser, proxy)
-        browser.get("https://studio.youtube.com/")
-        
-        WebDriverWait(browser, 200).until(EC.url_contains("studio.youtube.com"))
-        if browser.current_url == 'https://studio.youtube.com/':
-            element = WebDriverWait(browser, 100).until(
+        WebDriverWait(driver['driver'], 200).until(EC.url_contains("studio.youtube.com"))
+        if driver['driver'].current_url == 'https://studio.youtube.com/':
+            element = WebDriverWait(driver['driver'], 100).until(
                 EC.element_to_be_clickable((By.XPATH, '//a[contains(@class, "black-secondary")]'))
             )
             element.click()
         
-        # await browser load end
-        element = WebDriverWait(browser, 100).until(
+        # await driver['driver'] load end
+        element = WebDriverWait(driver['driver'], 100).until(
             EC.element_to_be_clickable((By.XPATH, '//ytcp-button[@icon="yt-sys-icons:video_call"]'))
         )
         element.click()
         time.sleep(1)
 
-        WebDriverWait(browser, 100).until(
+        WebDriverWait(driver['driver'], 100).until(
             EC.element_to_be_clickable((By.ID, 'text-item-0'))
         )
             
-        browser.find_element(By.ID, 'text-item-0').click()
+        driver['driver'].find_element(By.ID, 'text-item-0').click()
         time.sleep(10)
 
         # upload video
         print('upload video in youtube')
         # chờ tối đa 100 giây cho ít nhất 2 input xuất hiện
-        WebDriverWait(browser, 100).until(
+        WebDriverWait(driver['driver'], 100).until(
             lambda d: d.find_elements(By.TAG_NAME, 'input') if len(d.find_elements(By.TAG_NAME, 'input')) > 1 else False
         )
-        file_input = browser.find_elements(By.TAG_NAME, 'input')[1]
+        file_input = driver['driver'].find_elements(By.TAG_NAME, 'input')[1]
         file_input.send_keys(video_path)
         time.sleep(3)
 
 
         # upload thumbnail
         print('upload thumbnail in youtube')
-        WebDriverWait(browser, 10).until(
+        WebDriverWait(driver['driver'], 10).until(
             EC.visibility_of_element_located((By.ID, 'file-loader'))
         )
-        thumbnail_input = browser.find_element(By.ID, 'file-loader')
+        thumbnail_input = driver['driver'].find_element(By.ID, 'file-loader')
         thumbnail_input.send_keys(thumb_path)
         time.sleep(3)
     except:
         print('error')
     
     input('nhấn bất kì để đóng chrome:')
-    browser.quit()
+    driver['driver'].quit()
+    
+    clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
 
 
 def clear_cache_chrome(profile_path: str):
@@ -1721,3 +1652,73 @@ def generate_to_voice_gtts(
     else:
         print("❌ Lỗi: Không tạo được file.")
         return None
+    
+def get_copy_profile_driver(name_chrome_yt, user_agent=None, proxy=None):
+    chrome_options = Options()
+
+    # 🧩 Cấu hình profile (đường dẫn tuyệt đối, không lỗi khóa)
+    name_folder = name_chrome_yt
+    user_data_dir = os.path.join(os.getcwd(), 'youtubes', name_folder)
+    user_data_dir_abspath = os.path.abspath(user_data_dir)
+    temp_profile_path = os.path.join(os.getcwd(), 'youtubes', f"temp_{name_folder}")
+    
+    # ⚙️ Xóa nếu đã tồn tại (tránh lỗi copy)
+    if os.path.exists(temp_profile_path):
+        shutil.rmtree(temp_profile_path)
+
+    # ⚙️ Copy profile gốc sang profile tạm
+    shutil.copytree(user_data_dir_abspath, temp_profile_path)
+    for f in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
+        path_f = os.path.join(temp_profile_path, "Default", f)
+        if os.path.exists(path_f):
+            os.remove(path_f)
+        
+    chrome_options.add_argument(f"--user-data-dir={temp_profile_path}")
+    chrome_options.add_argument("--profile-directory=Default")
+
+    # 🧩 Proxy (nếu có)
+    if proxy:
+        chrome_options.add_argument(f"--proxy-server={proxy}")
+
+    # 🧩 User-Agent (nếu có)
+    if user_agent:
+        chrome_options.add_argument(f"--user-agent={user_agent}")
+
+    # ⚙️ Các flag ổn định (tránh crash, tối ưu cho VPS)
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+
+  
+    # 🧠 Headless (nếu bạn đang chạy trong VPS không GUI)
+    # chrome_options.add_argument("--headless=new")
+
+    # 🚀 Khởi tạo Chrome với version_main khớp (141)
+    driver = uc.Chrome(options=chrome_options, version_main=141)
+    
+    return {"driver": driver, "user_data_dir_abspath": user_data_dir_abspath, "temp_profile_path": temp_profile_path}
+
+def clear_copy_profile(user_data_dir_abspath, temp_profile_path):
+    files_to_copy = [
+        "Local State",
+        os.path.join("Default", "Network", "Cookies"),
+        os.path.join("Default", "Login Data"),
+        os.path.join("Default", "Web Data")
+    ]
+        
+    for file in files_to_copy:
+        src = os.path.join(temp_profile_path, file)
+        dst = os.path.join(user_data_dir_abspath, file)
+
+        if os.path.exists(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            print(f"✅ Cập nhật lại: {file}")
+        else:
+            print(f"⚠️ Không tìm thấy file: {file}")
+
+    # 🧹 Xóa profile tạm
+    shutil.rmtree(temp_profile_path, ignore_errors=True)
+    print("🧹 Đã xóa thư mục tạm.")

@@ -38,7 +38,7 @@ import inspect
 import xml.etree.ElementTree as ET
 from itertools import zip_longest
 import json
-
+import psutil
 def func_to_string(func):
     return inspect.getsource(func)
 
@@ -1700,7 +1700,49 @@ def get_copy_profile_driver(name_chrome_yt, user_agent=None, proxy=None):
     
     return {"driver": driver, "user_data_dir_abspath": user_data_dir_abspath, "temp_profile_path": temp_profile_path}
 
+
+def clear_all_chrome_background():
+    chrome_procs = []
+    for proc in psutil.process_iter(['name']):
+        try:
+            if proc.info['name'] and 'chrome' in proc.info['name'].lower():
+                chrome_procs.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied): 
+            print('loii')   
+            
+    for proc in chrome_procs:
+        try:
+            proc.kill()
+        except Exception as e:
+            print(f"Không thể kill {proc.pid}: {e}")
+            
+    """⏳ Đợi đến khi Chrome tắt hoàn toàn (tối đa timeout giây)"""
+    start = time.time()
+    while time.time() - start < 500:
+        chrome_running = False
+        for proc in psutil.process_iter(['name']):
+            try:
+                if proc.info['name'] and proc.info['name'].lower() == 'chrome.exe':
+                    chrome_running = True
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        
+        if not chrome_running:
+            print("✅ Chrome đã tắt hoàn toàn.")
+            return True
+        
+        time.sleep(0.5)
+
+    print("⚠️ Chrome vẫn chưa tắt hết, bỏ qua kiểm tra.")
+    return False
+
+
+
 def clear_copy_profile(user_data_dir_abspath, temp_profile_path):
+    is_clear_all_chrome_background = clear_all_chrome_background()
+    if is_clear_all_chrome_background is False:
+        raise Exception("Lỗi xảy ra, không đóng được chrome nền")
     files_to_copy = [
         "Local State",
         os.path.join("Default", "Network", "Cookies"),

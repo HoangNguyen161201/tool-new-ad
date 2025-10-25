@@ -349,6 +349,8 @@ def main(type_run_video='ffmpeg', is_not_run_parallel_create_child_video=False):
                     time.sleep(5)
             elif "Lỗi xảy ra, proxy bị lỗi" in message:
                 raise Exception("Lỗi xảy ra, proxy bị lỗi")
+            elif "Lỗi xảy ra, không đóng được chrome nền" in message:
+                raise Exception("Lỗi xảy ra, không đóng được chrome nền")
             elif "Không có youtube nào khả dụng (tất cả còn trong thời gian chờ)." in message:
                 print("Không có youtube nào khả dụng (tất cả còn trong thời gian chờ).")
                 time.sleep(5 * 60)

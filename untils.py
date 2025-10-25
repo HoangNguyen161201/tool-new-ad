@@ -1669,11 +1669,7 @@ def get_copy_profile_driver(name_chrome_yt, user_agent=None, proxy=None):
         shutil.rmtree(temp_profile_path)
 
     # ⚙️ Copy profile gốc sang profile tạm
-    shutil.copytree(user_data_dir_abspath, temp_profile_path)
-    for f in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
-        path_f = os.path.join(temp_profile_path, "Default", f)
-        if os.path.exists(path_f):
-            os.remove(path_f)
+    shutil.copytree(user_data_dir_abspath, temp_profile_path, dirs_exist_ok=True, ignore=ignore_func)
         
     chrome_options.add_argument(f"--user-data-dir={temp_profile_path}")
     chrome_options.add_argument("--profile-directory=Default")

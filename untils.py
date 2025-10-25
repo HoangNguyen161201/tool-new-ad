@@ -1745,7 +1745,7 @@ def clear_copy_profile(user_data_dir_abspath, temp_profile_path):
         raise Exception("Lỗi xảy ra, không đóng được chrome nền")
     files_to_copy = [
         "Local State",
-        os.path.join("Default", "Network", "Cookies"),
+        os.path.join("Default", "Cookies"),
         os.path.join("Default", "Login Data"),
         os.path.join("Default", "Web Data")
     ]

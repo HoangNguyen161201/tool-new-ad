@@ -1669,6 +1669,10 @@ def get_copy_profile_driver(name_chrome_yt, user_agent=None, proxy=None):
         shutil.rmtree(temp_profile_path)
 
     # ⚙️ Copy profile gốc sang profile tạm
+    def ignore_func(dir, files):
+        # Bỏ qua các file đặc biệt của Chrome
+        ignored = {'SingletonLock', 'SingletonSocket', 'SingletonCookie'}
+        return [f for f in files if f in ignored]
     shutil.copytree(user_data_dir_abspath, temp_profile_path, dirs_exist_ok=True, ignore=ignore_func)
         
     chrome_options.add_argument(f"--user-data-dir={temp_profile_path}")

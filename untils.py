@@ -1464,6 +1464,8 @@ def open_chrome_to_edit(name_chrome_yt, driver_path = "C:/Program Files/Google/C
         process.wait(timeout=30)  # đợi chrome tắt
     except subprocess.TimeoutExpired:
         process.kill()  # nếu không tắt thì kill hẳn là sao không hiểu
+        
+    clear_all_chrome_background()
 
              
 def open_chrome_to_edit_detect(name_chrome_yt, user_agent=None, proxy=None):
@@ -1715,7 +1717,10 @@ def clear_all_chrome_background():
             proc.kill()
         except Exception as e:
             print(f"Không thể kill {proc.pid}: {e}")
-            
+
+
+def wait_check_clear_all_chrome_background():
+    clear_all_chrome_background()         
     """⏳ Đợi đến khi Chrome tắt hoàn toàn (tối đa timeout giây)"""
     start = time.time()
     while time.time() - start < 500:
@@ -1740,7 +1745,7 @@ def clear_all_chrome_background():
 
 
 def clear_copy_profile(user_data_dir_abspath, temp_profile_path):
-    is_clear_all_chrome_background = clear_all_chrome_background()
+    is_clear_all_chrome_background = wait_check_clear_all_chrome_background()
     if is_clear_all_chrome_background is False:
         raise Exception("Lỗi xảy ra, không đóng được chrome nền")
     files_to_copy = [

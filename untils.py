@@ -1301,13 +1301,15 @@ def upload_yt( name_yt, user_agent, proxy, title, description, tags, video_path,
                 EC.presence_of_all_elements_located((By.ID, 'share-url'))
             )
         browser.quit()
+        clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
     except Exception as e:
         message = str(e)
         browser.quit()
+        clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
         if "lỗi upload youtube" in message:
             raise Exception("lỗi upload youtube")
     
-    clear_copy_profile(driver['user_data_dir_abspath'], driver['temp_profile_path'])
+    
         
 
 
